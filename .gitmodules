@@ -1,0 +1,3 @@
+[submodule "vendor/bash-tools"]
+	path = vendor/bash-tools
+	url = https://github.com/Flower7C3/bash-tools.git
