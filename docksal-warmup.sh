@@ -3,7 +3,7 @@
 source "$(dirname "$BASH_SOURCE")/vendor/bash-tools/_base.sh"
 
 ### CONFIG
-docksal_example_dir="$(realpath $(dirname "$BASH_SOURCE")/_blueprint/docksal/)/"
+docksal_example_dir="$(realpath $(dirname "$BASH_SOURCE")/_blueprint/)/"
 _project_name="example_$(date "+%Y%m%d_%H%M%S")"
 _application_stack="custom"
 _application_stacks="custom php php-nodb node boilerplate"
