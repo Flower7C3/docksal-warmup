@@ -35,11 +35,11 @@ fi
 #-------------------------- Execution --------------------------------
 function trap_sigint() {
     printf "${COLOR_RED}Emergency stop${COLOR_OFF}\n"
-    rm "$dump_directory_path$dump_file_name"*
+    rm "$dump_directory_path/$dump_file_name"*
     exit 99
 }
 function err_report() {
-    rm "$dump_directory_path$dump_file_name"*
+    rm "$dump_directory_path/$dump_file_name"*
     exit 88
 }
 trap 'trap_sigint' SIGINT SIGQUIT
