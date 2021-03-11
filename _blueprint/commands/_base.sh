@@ -81,7 +81,7 @@ if [[ "" == "$DOCROOT" ]]; then
 fi
 cd $PROJECT_ROOT
 
-timestamp=$(date +%Y%m%d_%H%I%S)
+timestamp=$(date +%Y%m%d_%H%M%S)
 if [[ "" == "$SECRET_PART_NAME" ]]; then
     if [[ -d .git ]]; then
         SECRET_PART_NAME=$(git rev-list --max-parents=0 HEAD)
