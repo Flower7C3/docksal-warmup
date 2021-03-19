@@ -120,12 +120,6 @@ else
                 display_info "Configure ${COLOR_INFO_H}db${COLOR_INFO} container (read more on ${COLOR_INFO_H}https://hub.docker.com/r/docksal/mariadb/${COLOR_INFO})"
                 prompt_variable_fixed mariadb_version "MySQL version on db container" "$_mariadb_version" "$_mariadb_versions"
             fi
-            if [[ "$db_version" != "no" ]]; then
-                prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
-                if [[ "$db_import" == "y" ]]; then
-                    db_import="yes"
-                fi
-            fi
         fi
         docksal_stack=""
         if [[ "$apache_version" != "no" && "$php_version" != "no" && "$db_version" != "no" ]]; then
@@ -151,8 +145,8 @@ else
     done
 
     if [[ "$php_version" != "no" ]]; then
-    display_line ""
-    display_header "Enable ${COLOR_LOG_H}addons${COLOR_LOG}"
+        display_line ""
+        display_header "Enable ${COLOR_LOG_H}PHP addons${COLOR_LOG}"
         prompt_variable_fixed symfony_config "Init example Symfony Framework configuration and commands?" "$_symfony_config" "yes no"
         prompt_variable_fixed drupal_config "Init example Docksal Drupal configuration and commands?" "$_drupal_config" "yes no"
         prompt_variable_fixed wordpress_config "Init example Wordpress commands?" "$_wordpress_config" "yes no"
@@ -160,6 +154,15 @@ else
         symfony_config="no"
         drupal_config="no"
         wordpress_config="no"
+    fi
+    if [[ "$db_version" != "no" ]]; then
+        display_line ""
+        display_header "Enable ${COLOR_LOG_H}DB addons${COLOR_LOG}"
+        prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
+        prompt_variable_fixed db_backup_mode "Do You want execute database backup (mysqldump) via remote server (SSH) or via Docksal (fin)?" "$_db_backup_mode" "ssh fin"
+    else
+        db_import="no"
+        db_backup_mode="skip"
     fi
 fi
 
@@ -251,13 +254,19 @@ project_path=$(realpath .)
             copy_file "commands/symfony/console" "commands/console"
         fi
         if [[ "$db_version" != "no" ]]; then
-            copy_file "commands/db/backup-db" "commands/backup-db"
-            copy_file "commands/db/share-db" "commands/share-db"
-            copy_file "commands/db/download-db" "commands/download-db"
+            if [[ "$db_backup_mode" == "ssh" ]]; then
+                copy_file "commands/db/backup-db-mixed" "commands/backup-db"
+                copy_file "commands/db/share-db" "commands/share-db"
+                copy_file "commands/db/download-db" "commands/download-db"
+            else
+                copy_file "commands/db/backup-db-direct" "commands/backup-db"
+            fi
             copy_file "commands/db/restore-db" "commands/restore-db"
             append_file "commands/db/backup-data" "commands/backup-data"
-            append_file "commands/db/share-data" "commands/share-data"
-            append_file "commands/db/download-data" "commands/download-data"
+            if [[ "$db_backup_mode" == "ssh" ]]; then
+                append_file "commands/db/share-data" "commands/share-data"
+                append_file "commands/db/download-data" "commands/download-data"
+            fi
             append_file "commands/db/restore-data" "commands/restore-data"
             append_file "commands/db/_base" "commands/_base.sh"
             (
@@ -362,7 +371,12 @@ project_path=$(realpath .)
         append_file "readme/docksal-setup-init.md" "../README.md"
         append_file "readme/docksal-how-to.md" "../README.md"
         if [[ "$db_version" != "no" ]]; then
-            append_file "readme/docksal-how-to-db.md" "../README.md"
+            if [[ "$db_backup_mode" == "ssh" ]]; then
+                append_file "readme/docksal-how-to-db-mixed.md" "../README.md"
+            fi
+            if [[ "$db_backup_mode" == "fin" ]]; then
+                append_file "readme/docksal-how-to-db-direct.md" "../README.md"
+            fi
         fi
         if [[ "$node_version" != "no" ]]; then
             append_file "readme/docksal-how-to-node.md" "../README.md"
