@@ -159,7 +159,7 @@ else
         display_line ""
         display_header "Enable ${COLOR_LOG_H}DB addons${COLOR_LOG}"
         prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
-        prompt_variable_fixed db_backup_mode "Do You want execute database backup (mysqldump) via remote server (SSH) or via Docksal (fin)?" "$_db_backup_mode" "ssh fin"
+        prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh', dump database and scp to local; connect via 'fin' to remote database and save as local file; dump directly on remote and share as 'http' resource?" "$_db_backup_mode" "ssh fin http"
     else
         db_import="no"
         db_backup_mode="skip"
@@ -254,18 +254,22 @@ project_path=$(realpath .)
             copy_file "commands/symfony/console" "commands/console"
         fi
         if [[ "$db_version" != "no" ]]; then
-            if [[ "$db_backup_mode" == "ssh" ]]; then
-                copy_file "commands/db/backup-db-mixed" "commands/backup-db"
-                copy_file "commands/db/share-db" "commands/share-db"
-                copy_file "commands/db/download-db" "commands/download-db"
-            else
-                copy_file "commands/db/backup-db-direct" "commands/backup-db"
+            if [[ "$db_backup_mode" == "http" ]]; then
+                copy_file "commands/db/backup-db-via-http" "commands/backup-db-on-remote"
+                copy_file "commands/db/share-db" "commands/share-db-on-remote"
+                copy_file "commands/db/download-db-from-remote" "commands/download-db-from-remote"
+            elif [[ "$db_backup_mode" == "ssh" ]]; then
+                copy_file "commands/db/backup-db-via-ssh" "commands/backup-db"
+            elif [[ "$db_backup_mode" == "fin" ]]; then
+                copy_file "commands/db/backup-db-via-docksal" "commands/backup-db"
             fi
             copy_file "commands/db/restore-db" "commands/restore-db"
-            append_file "commands/db/backup-data" "commands/backup-data"
-            if [[ "$db_backup_mode" == "ssh" ]]; then
-                append_file "commands/db/share-data" "commands/share-data"
-                append_file "commands/db/download-data" "commands/download-data"
+            if [[ "$db_backup_mode" == "http" ]]; then
+                append_file "commands/db/backup-data-on-remote" "commands/backup-data"
+                append_file "commands/db/share-data-on-remote" "commands/share-data"
+                append_file "commands/db/download-data-on-remote" "commands/download-data"
+            else
+                append_file "commands/db/backup-data" "commands/backup-data"
             fi
             append_file "commands/db/restore-data" "commands/restore-data"
             append_file "commands/db/_base" "commands/_base.sh"
@@ -372,10 +376,11 @@ project_path=$(realpath .)
         append_file "readme/docksal-how-to.md" "../README.md"
         if [[ "$db_version" != "no" ]]; then
             if [[ "$db_backup_mode" == "ssh" ]]; then
-                append_file "readme/docksal-how-to-db-mixed.md" "../README.md"
-            fi
-            if [[ "$db_backup_mode" == "fin" ]]; then
-                append_file "readme/docksal-how-to-db-direct.md" "../README.md"
+                append_file "readme/docksal-how-to-db-via-ssh.md" "../README.md"
+            elif [[ "$db_backup_mode" == "http" ]]; then
+                append_file "readme/docksal-how-to-db-via-http.md" "../README.md"
+            elif [[ "$db_backup_mode" == "fin" ]]; then
+                append_file "readme/docksal-how-to-db-via-fin.md" "../README.md"
             fi
         fi
         if [[ "$node_version" != "no" ]]; then

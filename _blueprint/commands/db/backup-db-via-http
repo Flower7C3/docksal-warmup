@@ -47,18 +47,8 @@ trap 'trap_sigint' SIGINT SIGQUIT
 printf "${COLOR_YELLOW}Backup from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} to ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} file${COLOR_OFF}\n" "${REMOTE_RDS_USERNAME}@${REMOTE_RDS_HOSTNAME}:${REMOTE_RDS_PORT}" "$db_dump_sql_file_name"
 mkdir -p ${db_dump_dir_path}
 
-if is_docksal; then
+ignores=$(mysql --disable-column-names --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" -e "SELECT GROUP_CONCAT(concat('--ignore-table=', TABLE_SCHEMA, '.', table_name) SEPARATOR ' ') FROM information_schema.tables WHERE TABLE_SCHEMA = '${REMOTE_RDS_DB_NAME}' AND TABLE_NAME LIKE 'view_%';")
+ignores=$(echo $ignores | sed 's/NULL//g; s/|NULL|/||/g; s/|NULL\(|\|$\)/|\1/g')
 
-    ignores=$(fin exec -T --in=db mysql --disable-column-names --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" -e "SELECT GROUP_CONCAT(concat('--ignore-table=', TABLE_SCHEMA, '.', table_name) SEPARATOR ' ') FROM information_schema.tables WHERE TABLE_SCHEMA = '${REMOTE_RDS_DB_NAME}' AND TABLE_NAME LIKE 'view_%';")
-    ignores=$(echo $ignores | sed 's/NULL//g; s/|NULL|/||/g; s/|NULL\(|\|$\)/|\1/g')
+mysqldump --verbose --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" $ignores "$REMOTE_RDS_DB_NAME" | gzip >"$db_dump_dir_path/$db_dump_gzip_file_name" || err_report
 
-    fin exec -T --in=db mysqldump --verbose --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" $ignores "$REMOTE_RDS_DB_NAME" >"$db_dump_dir_path/$db_dump_sql_file_name" || err_report
-
-else
-
-    ignores=$(mysql --disable-column-names --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" -e "SELECT GROUP_CONCAT(concat('--ignore-table=', TABLE_SCHEMA, '.', table_name) SEPARATOR ' ') FROM information_schema.tables WHERE TABLE_SCHEMA = '${REMOTE_RDS_DB_NAME}' AND TABLE_NAME LIKE 'view_%';")
-    ignores=$(echo $ignores | sed 's/NULL//g; s/|NULL|/||/g; s/|NULL\(|\|$\)/|\1/g')
-
-    mysqldump --verbose --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" $ignores "$REMOTE_RDS_DB_NAME" | gzip >"$db_dump_dir_path/$db_dump_gzip_file_name" || err_report
-
-fi

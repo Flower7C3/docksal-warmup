@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+## Backup database to file
+##
+## Usage: fin backup-db
+
+# Abort if anything fails
+set -e
+
+#-------------------------- Configure --------------------------------
+source $(dirname ${BASH_SOURCE})/_base.sh
+cd "$PROJECT_ROOT"
+
+if [[ "" == "$REMOTE_SSH_CONNECTION" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_SSH_CONNECTION${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+    exit 1
+fi
+
+#-------------------------- Execution --------------------------------
+printf "${COLOR_YELLOW}Check remote server ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} " "$REMOTE_SSH_CONNECTION"
+ssh "${REMOTE_SSH_CONNECTION}" 'printf "<%s@%s>" $(whoami) $(hostname)' || exit 81
+printf "${COLOR_OFF}\n"
+
+function trap_sigint() {
+    printf "${COLOR_RED}Emergency stop${COLOR_OFF}\n"
+    rm "$db_dump_dir_path/$db_dump_file_name"*
+    exit 99
+}
+function err_report() {
+    rm "$db_dump_dir_path/$db_dump_file_name"*
+    exit 88
+}
+trap 'trap_sigint' SIGINT SIGQUIT
+
+printf "${COLOR_YELLOW}Backup from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} to ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} file${COLOR_OFF}\n" "${REMOTE_SSH_CONNECTION}" "$db_dump_sql_file_name"
+mkdir -p ${db_dump_dir_path}
+
+ignores=$(ssh "${REMOTE_SSH_CONNECTION}" 'mysql --disable-column-names --host ${RDS_HOSTNAME} --port ${RDS_PORT} --user ${RDS_USERNAME} --password=${RDS_PASSWORD} -e "SELECT GROUP_CONCAT(concat(\"--ignore-table=\", TABLE_SCHEMA, \".\", table_name) SEPARATOR \" \") FROM information_schema.tables WHERE TABLE_SCHEMA = \"${RDS_DB_NAME}\" AND TABLE_NAME LIKE \"view_%\";"')
+ignores=$(echo $ignores | sed 's/NULL//g; s/|NULL|/||/g; s/|NULL\(|\|$\)/|\1/g')
+
+ssh "${REMOTE_SSH_CONNECTION}" 'mysqldump --verbose --host ${RDS_HOSTNAME} --port ${RDS_PORT} --user ${RDS_USERNAME} --password=${RDS_PASSWORD} '$ignores' ${RDS_DB_NAME} | gzip > '"$db_dump_gzip_file_name"
+
+printf "${COLOR_YELLOW}Copy dump file from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} server to local${COLOR_OFF}\n" "$server_name"
+scp "${REMOTE_SSH_CONNECTION}":~/"$db_dump_gzip_file_name" "$db_dump_dir_path/$db_dump_gzip_file_name"
+
+printf "${COLOR_YELLOW}Finalize${COLOR_OFF}\n"
+ssh "${REMOTE_SSH_CONNECTION}" 'rm '"$db_dump_file_name"*
