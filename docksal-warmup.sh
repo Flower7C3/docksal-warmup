@@ -181,8 +181,10 @@ project_path=$(realpath .)
     trap "rm -rf \"$project_path\"/.docksal/;exit 2" SIGINT
     (
         if [[ -d .docksal ]]; then
-            display_error "Docksal configuration already exists!"
-            confirm_or_exit "Override Docksal configuration?"
+            display_error "Docksal configuration already exists! We need to remove it first."
+            confirm_or_exit "Continue?"
+            fin project remove -f
+            rm -rf .docksal
         fi
     )
     (
