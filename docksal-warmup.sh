@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 
-source "$(dirname "$BASH_SOURCE")/vendor/bash-tools/_base.sh"
+## Warmup Docksal configuration for project
+##
+## Usage: fin warmup
+
+if [[ -L "$BASH_SOURCE" ]]; then
+    _bash_source="$(readlink "$BASH_SOURCE")"
+else
+    _bash_source="$BASH_SOURCE"
+fi
+source "$(dirname "$_bash_source")/vendor/bash-tools/_base.sh"
 
 ### CONFIG
-docksal_example_dir="$(realpath $(dirname "$BASH_SOURCE")/_blueprint/)/"
+docksal_example_dir="$(realpath $(dirname "$_bash_source")/_blueprint/)/"
 _project_name="example_$(date "+%Y%m%d_%H%M%S")"
 _application_stack="custom"
 _application_stacks="custom php php-nodb node boilerplate"
@@ -59,6 +68,15 @@ function replace_in_file() {
 
 ### WELCOME
 program_title "Docksal configuration warmup"
+if [[ "$1" == "--self-update" ]]; then
+    display_header "Self update"
+    cd "$(dirname "$_bash_source")"
+    git checkout -- .
+    git pull origin master
+    git submodule update --init --recursive
+    git submodule foreach git pull origin master
+    exit
+fi
 
 ### VARIABLES
 display_header "Configure ${COLOR_LOG_H}project${COLOR_LOG} properties"

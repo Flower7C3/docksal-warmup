@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+echo "Installing Docksal Warmup command..."
+mkdir -p ~/.docksal/tools/warmup
+cd ~/.docksal/tools/warmup
+git clone https://github.com/Flower7C3/docksal-warmup .
+git checkout -- .
+git pull origin master
+git submodule update --init --recursive
+git submodule foreach git pull origin master
+
+ln -snf ~/.docksal/tools/warmup/docksal-warmup.sh ~/.docksal/commands/warmup

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+echo "Removing 'fin warmup' command..."
+rm -rf ~/.docksal/commands/warmup
+echo "Removing components..."
+rm -rf ~/.docksal/tools/warmup/
