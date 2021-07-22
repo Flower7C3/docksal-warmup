@@ -83,7 +83,7 @@ cd $PROJECT_ROOT
 
 timestamp=$(date +%Y%m%d_%H%M%S)
 if [[ "" == "$SECRET_PART_NAME" ]]; then
-    if [[ $(hash "git" 2>/dev/null) ]] && [[ -d .git ]]; then
+    if [[ $(type "git" 2>/dev/null) ]] && [[ -d .git ]]; then
         SECRET_PART_NAME=$(git rev-list --max-parents=0 HEAD)
     else
         printf "${COLOR_RED}Please initialize git repository and do first commit or define ${COLOR_RED_BG}SECRET_PART_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"

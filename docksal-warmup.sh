@@ -9,17 +9,17 @@ _application_stack="custom"
 _application_stacks="custom php php-nodb node boilerplate"
 _apache_version="2.4"
 _apache_versions="no 2.4"
-_php_version="7.4"
-_php_versions="no 5.6 7.0 7.1 7.2 7.3 7.4"
-_node_version="12"
-_node_versions="no 6 8 10 11 12 13"
+_php_version="8.0"
+_php_versions="no 5.6 7.0 7.1 7.2 7.3 7.4 8.0"
+_node_version="16"
 _db_versions="no mysql mariadb"
 _db_version="mariadb"
 _mysql_version="5.7"
 _mysql_versions="5.5 5.6 5.7 8.0"
-_mariadb_version="10.3"
-_mariadb_versions="5.5 10.0 10.1 10.2 10.3"
+_mariadb_version="10.5"
+_mariadb_versions="5.5 10.0 10.1 10.2 10.3 10.4 10.5"
 _db_import="yes"
+_db_backup_mode="no"
 _java_version="no"
 _java_versions="no 8"
 _www_docroot="web"
@@ -68,6 +68,10 @@ if [[ "$project_name" == "." ]]; then
     confirm_or_exit "Really want to configure Docksal in ${COLOR_QUESTION_B}$(pwd)${COLOR_QUESTION} directory?"
     _domain_name="$(basename $(pwd))"
 fi
+if [[ "$(printf "%s/" $(pwd) | grep "/Desktop/")" ]]; then
+    display_error "Please do not create Docker projects on DESKTOP, because it may cause mounting problems."
+    exit 2
+fi
 _domain_name=$(echo "$_domain_name" | sed 's/_/-/g')
 prompt_variable_not domain_name "Domain name (without .docksal tld, avoid underscore)" "$_domain_name" "." 2 "$@"
 domain_name=$(echo "$domain_name" | sed 's/_/-/g')
@@ -100,7 +104,8 @@ else
         fi
         node_version="no"
         if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" || "$application_stack" == "node" ]]; then
-            prompt_variable_fixed node_version "Node version on cli container" "$_node_version" "$_node_versions"
+            display_info "Configure ${COLOR_INFO_H}node${COLOR_INFO} version (browse all on ${COLOR_INFO_H}https://nodejs.org/en/download/releases/${COLOR_INFO})"
+            prompt_variable node_version "Node version on cli container" "$_node_version"
         fi
         java_version="no"
         if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" || "$application_stack" == "node" ]]; then
@@ -159,7 +164,7 @@ else
         display_line ""
         display_header "Enable ${COLOR_LOG_H}DB addons${COLOR_LOG}"
         prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
-        prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh', dump database and scp to local; connect via 'fin' to remote database and save as local file; dump directly on remote and share as 'http' resource?" "$_db_backup_mode" "ssh fin http"
+        prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh', dump database and scp to local; connect via 'fin' to remote database and save as local file; dump directly on remote and share as 'http' resource?" "$_db_backup_mode" "ssh fin http no"
     else
         db_import="no"
         db_backup_mode="skip"
@@ -205,7 +210,9 @@ project_path=$(realpath .)
         )
         (
             display_info "Setup cli image ${COLOR_INFO_H}${docksal_cli_image}${COLOR_INFO}"
-            if [[ "$php_version" == "5.6" || "$php_version" == "7.0" ]]; then
+            if [[ "$php_version" == "8.0" ]]; then
+                docksal_cli_image="docksal/cli:php${php_version}-build"
+            elif [[ "$php_version" == "5.6" || "$php_version" == "7.0" ]]; then
                 docksal_cli_image="docksal/cli:2.5-php${php_version}"
             else
                 docksal_cli_image="docksal/cli:2-php${php_version}"
@@ -239,6 +246,11 @@ project_path=$(realpath .)
     (
         display_header "Add custom commands"
         copy_file "commands/init"
+        append_file "commands/init-step-1" "commands/init"
+        if [[ "$node_version" != "no" ]]; then
+            append_file "commands/node/init" "commands/init"
+        fi
+        append_file "commands/init-step-2" "commands/init"
         copy_file "commands/_base.sh"
         copy_file "commands/prepare-site"
         if [[ "$db_version" != "no" ]] || [[ "$drupal_config" == "yes" ]] || [[ "$wordpress_config" == "yes" ]]; then
@@ -274,7 +286,9 @@ project_path=$(realpath .)
                 append_file "commands/db/backup-data" "commands/backup-data"
             fi
             append_file "commands/db/restore-data" "commands/restore-data"
-            append_file "commands/db/_base" "commands/_base.sh"
+            if [[ "$db_backup_mode" != "no" ]]; then
+                append_file "commands/db/_base" "commands/_base.sh"
+            fi
             (
                 display_info "Create ${COLOR_INFO_H}.docksal/services/db/dump/${COLOR_INFO} directory"
                 mkdir -p .docksal/services/db/dump/
@@ -404,10 +418,23 @@ project_path=$(realpath .)
     trap - SIGINT
 )
 
+if [[ $(type "git" 2>/dev/null) ]]; then
+    confirm_or_exit "Save Docksal configuration to git?"
+    if [[ ! -d .git ]]; then
+        git init
+    fi
+    git add .
+    git commit -m "Docksal configuration initialize"
+fi
+
 confirm_or_exit "Initialize Docker project?" "You can init project manually with ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory."
 
 display_info "Initialize Docker project (executing ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory.)"
-fin init
+if [[ $(type "yes") ]]; then
+    yes | fin init
+else
+    fin init
+fi
 color_reset
 
 print_new_line

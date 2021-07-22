@@ -1,0 +1,11 @@
+# Stack initialization
+printf "${COLOR_YELLOW_BG} Step 1 ${COLOR_YELLOW} Initializing stack...${COLOR_OFF}\n"
+if [[ "${DOCKER_RUNNING}" == "true" ]]; then
+    fin reset -f
+else
+    fin up
+fi
+if [[ "$(fin config | grep mysql)" ]]; then
+    printf "${COLOR_YELLOW}Waiting 10s for MySQL to initialize...${COLOR_OFF}\n"
+    sleep 10
+fi

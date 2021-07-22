@@ -1,0 +1,6 @@
+# Site initialization
+printf "${COLOR_YELLOW_BG} Step 2 ${COLOR_YELLOW} Preparing site...${COLOR_OFF}\n"
+# This runs inside cli using http://docs.docksal.io/en/v1.4.0/fin/custom-commands/#executing-commands-inside-cli
+fin prepare-site
+
+printf "${COLOR_YELLOW_BG} DONE! ${COLOR_YELLOW}Open ${COLOR_YELLOW_BG}http://${VIRTUAL_HOST}${COLOR_YELLOW} in your browser to verify the setup.\n"
