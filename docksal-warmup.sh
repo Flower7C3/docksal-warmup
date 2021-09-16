@@ -197,8 +197,9 @@ else
             display_info "Configure ${COLOR_INFO_H}db${COLOR_INFO} container"
             if [[ "$_db_versions" == "" ]]; then
                 display_log "Fetch Docksal db images versions from registry (read more on ${COLOR_LOG_H}https://hub.docker.com/r/docksal/db/${COLOR_LOG})"
+                _mysql_versions_arr=($(get_docker_registry_versions docksal/mysql docksal/))
                 _mariadb_versions_arr=($(get_docker_registry_versions docksal/mariadb docksal/))
-                _db_version="${_mariadb_versions_arr[${#_mariadb_versions_arr[@]} - 1]}"
+                _db_version="mariadb:10.5"
                 _db_versions="no ${_mysql_versions_arr[@]} ${_mariadb_versions_arr[@]}"
             fi
             prompt_variable_fixed db_version "DB version" "$_db_version" "$_db_versions"
