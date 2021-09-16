@@ -2,7 +2,11 @@
 
 ## Warmup Docksal configuration for project
 ##
-## Usage: fin warmup
+## Usage: fin warmup [--self-update] [<PROJECT_NAME> <DOMAIN_NAME> <APPLICATION_STACK>]
+##      --self-update — download latest version from GitHub
+##      PROJECT_NAME — project directory name
+##      DOMAIN_NAME — project domain name (without .docksal tld, avoid underscore)
+##      APPLICATION_STACK — configuration stack: custom, php, php-nodb, node, boilerplate
 
 if [[ -L "$BASH_SOURCE" ]]; then
     _bash_source="$(readlink "$BASH_SOURCE")"
@@ -11,40 +15,12 @@ else
 fi
 
 system_programs=(curl)
-custom_programs=(jq)
-
+custom_programs=(fin jqa)
 required_programs=("${custom_programs[@]}" "${system_programs[@]}")
 
 source "$(dirname "$_bash_source")/vendor/bash-tools/_base.sh"
 
-
-is_system_ok=true
-
-# printf "${COLOR_ERROR}"
-for cmd in "${required_programs[@]}"; do
-    if ! hash "$cmd" 2>/dev/null; then
-        is_system_ok=false
-        # elif [[ "$cmd" == "redis-cli" ]]; then
-        # redis_CLI PING
-        # if [[ "$?" -ne 0 ]]; then
-        # exit
-        # fi
-    fi
-done
-
-if [[ "$is_system_ok" == "false" ]]; then
-    display_error "Please install missing programs"
-    for cmd in "${required_programs[@]}"; do
-        if ! hash "$cmd" 2>/dev/null; then
-            display_info "$DISPLAY_LINE_PREPEND_TAB" "%s" "$cmd"
-            is_system_ok=false
-        fi
-    done
-    exit
-fi
-
-
-### WELCOME
+# WELCOME
 program_title "Docksal configuration warmup"
 if [[ "$1" == "--self-update" ]]; then
     display_header "Self update"
@@ -106,7 +82,25 @@ function replace_in_file() {
     display_info "Replaced in file ${COLOR_INFO_H}${file_path}${COLOR_INFO} from ${COLOR_INFO_H}${text_from}${COLOR_INFO} to ${COLOR_INFO_H}${text_to}${COLOR_INFO}"
 }
 
-### CONFIG
+# VALIDATE
+is_system_ok=true
+for cmd in "${required_programs[@]}"; do
+    if ! hash "$cmd" 2>/dev/null; then
+        is_system_ok=false
+    fi
+done
+if [[ "$is_system_ok" == "false" ]]; then
+    display_error "Please install missing programs"
+    for cmd in "${required_programs[@]}"; do
+        if ! hash "$cmd" 2>/dev/null; then
+            display_info "$DISPLAY_LINE_PREPEND_TAB" "%s" "$cmd"
+            is_system_ok=false
+        fi
+    done
+    exit
+fi
+
+# CONFIG
 docksal_example_dir="$(realpath $(dirname "$_bash_source")/_blueprint/)/"
 _project_name="example_$(date "+%Y%m%d_%H%M%S")"
 _application_stack="custom"
@@ -120,8 +114,7 @@ _symfony_config="no"
 _drupal_config="no"
 _wordpress_config="no"
 
-
-### VARIABLES
+# VARIABLES
 display_header "Configure ${COLOR_LOG_H}project${COLOR_LOG} properties"
 prompt_variable_not_null project_name "Project name (lowercase alphanumeric, underscore, and hyphen)" "$_project_name" 1 "$@"
 _domain_name=${project_name}
@@ -254,8 +247,7 @@ else
         db_backup_mode="skip"
     fi
 fi
-
-### PROGRAM
+# PROGRAM
 confirm_or_exit "Save above options as Docksal configuration?"
 
 if [[ "$project_name" != "." ]]; then
