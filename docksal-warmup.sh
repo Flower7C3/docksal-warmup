@@ -15,7 +15,7 @@ else
 fi
 
 system_programs=(curl)
-custom_programs=(fin jqa)
+custom_programs=(fin jq)
 required_programs=("${custom_programs[@]}" "${system_programs[@]}")
 
 source "$(dirname "$_bash_source")/vendor/bash-tools/_base.sh"
