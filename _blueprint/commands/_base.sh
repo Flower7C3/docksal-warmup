@@ -50,7 +50,7 @@ function _confirm() {
             exit 1
             ;;
         *)
-            echo 'Please answer yes or no.'
+            printf "${COLOR_RED}Please answer yes or no.${COLOR_OFF}"
             ;;
         esac
     done

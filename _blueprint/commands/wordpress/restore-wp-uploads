@@ -22,7 +22,7 @@ fi
 if [[ -f "$wp_uploads_dump_file_name" ]]; then
     unzip $wp_uploads_dump_dir_path/$wp_uploads_dump_file_name -d $wp_uploads_dir_path
 else
-    printf "There is no dump file under '%s' directory!\n" "$wp_uploads_dump_dir_path"
-    printf "Please run 'fin backup-wp-uploads' command to pack uploads to archive file.\n"
+    printf "${COLOR_RED}There is no dump file under ${COLOR_RED_BG}%s${COLOR_RED} directory!${COLOR_OFF}\n" "$wp_uploads_dump_dir_path"
+    printf "${COLOR_RED}Please run ${COLOR_RED_BG}%s${COLOR_RED} command to pack uploads to archive file.${COLOR_OFF}\n" "fin backup-wp-uploads"
     exit 33
 fi
