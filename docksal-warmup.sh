@@ -242,7 +242,7 @@ else
         display_line ""
         display_header "Enable ${COLOR_LOG_H}DB addons${COLOR_LOG}"
         prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
-        prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh', dump database and scp to local; connect via 'fin' to remote database and save as local file; dump directly on remote and share as 'http' resource?" "$_db_backup_mode" "ssh fin http no"
+        prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh' to remote host, execute mysqldump and scp to local; execute mysqldump via 'fin' on remote database and save as local file; dump directly on remote and share as 'http' deep link?" "$_db_backup_mode" "ssh fin http no"
     else
         db_import="no"
         db_backup_mode="skip"
@@ -324,7 +324,9 @@ project_path=$(realpath .)
             copy_file "commands/data/backup-data" "commands/backup-data"
             copy_file "commands/data/download-data" "commands/download-data"
             copy_file "commands/data/restore-data" "commands/restore-data"
-            copy_file "commands/data/share-data" "commands/share-data"
+            if [[ "$db_backup_mode" == "http" ]] || [[ "$drupal_config" == "yes" ]] || [[ "$wordpress_config" == "yes" ]]; then
+                copy_file "commands/data/share-data" "commands/share-data"
+            fi
         fi
         if [[ "$nodejs_version" != "no" ]]; then
             copy_file "commands/node/gulp" "commands/gulp"
@@ -337,8 +339,8 @@ project_path=$(realpath .)
         if [[ "$db_version" != "no" ]]; then
             if [[ "$db_backup_mode" == "http" ]]; then
                 copy_file "commands/db/backup-db-via-http" "commands/backup-db-on-remote"
-                copy_file "commands/db/share-db" "commands/share-db-on-remote"
-                copy_file "commands/db/download-db-from-remote" "commands/download-db-from-remote"
+                copy_file "commands/db/share-db-via-http" "commands/share-db-on-remote"
+                copy_file "commands/db/download-db-via-http" "commands/download-db-from-remote"
             elif [[ "$db_backup_mode" == "ssh" ]]; then
                 copy_file "commands/db/backup-db-via-ssh" "commands/backup-db"
             elif [[ "$db_backup_mode" == "fin" ]]; then
@@ -355,6 +357,9 @@ project_path=$(realpath .)
             append_file "commands/db/restore-data" "commands/restore-data"
             if [[ "$db_backup_mode" != "no" ]]; then
                 append_file "commands/db/_base" "commands/_base.sh"
+                if [[ "$db_backup_mode" == "http" ]]; then
+                    append_file "commands/db/_base-backup-via-http" "commands/_base.sh"
+                fi
             fi
             (
                 display_info "Create ${COLOR_INFO_H}.docksal/services/db/dump/${COLOR_INFO} directory"

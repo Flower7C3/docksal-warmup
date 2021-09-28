@@ -1,0 +1,2 @@
+db_dump_sql_secret_name="$secret_dir_name/database.sql"
+db_dump_gzip_secret_name="$secret_dir_name/database.sql.gz"
