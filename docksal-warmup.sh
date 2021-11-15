@@ -282,7 +282,7 @@ project_path=$(realpath .)
         )
         (
             display_info "Setup web image ${COLOR_INFO_H}${docksal_web_image}${COLOR_INFO}"
-            docksal_web_image="docksal/apache:${http_server_version}"
+            docksal_web_image="docksal/${http_server_version}"
             fin config set WEB_IMAGE="$docksal_web_image"
         )
         (
