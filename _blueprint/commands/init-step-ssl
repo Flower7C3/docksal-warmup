@@ -1,0 +1,3 @@
+printf "${COLOR_YELLOW_BG} Step ${COLOR_YELLOW} SSL create...${COLOR_OFF}\n"
+fin mkcert create
+fin start

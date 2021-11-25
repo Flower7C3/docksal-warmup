@@ -1,0 +1,1 @@
+printf "${COLOR_YELLOW_BG} DONE! ${COLOR_YELLOW}Open ${COLOR_YELLOW_BG}https://${VIRTUAL_HOST}${COLOR_YELLOW} in your browser to verify the setup.\n"

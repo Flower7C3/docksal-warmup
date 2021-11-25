@@ -313,11 +313,12 @@ project_path=$(realpath .)
     (
         display_header "Add custom commands"
         copy_file "commands/init"
-        append_file "commands/init-step-1" "commands/init"
+        append_file "commands/init-step-reset-up" "commands/init"
         if [[ "$nodejs_version" != "no" ]]; then
             append_file "commands/node/init" "commands/init"
         fi
-        append_file "commands/init-step-2" "commands/init"
+        append_file "commands/init-step-ssl" "commands/init"
+        append_file "commands/init-step-prepare-site" "commands/init"
         copy_file "commands/_base.sh"
         copy_file "commands/prepare-site"
         if [[ "$db_backup_mode" != "no" ]]; then
