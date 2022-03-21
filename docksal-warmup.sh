@@ -299,7 +299,7 @@ project_path=$(realpath .)
         (
             if [[ "$db_version" != "no" ]]; then
                 display_info "Setup db image ${COLOR_INFO_H}${docksal_db_image}${COLOR_INFO}"
-                docksal_db_image="docksal/${mysql_version}"
+                docksal_db_image="docksal/${db_version}"
                 fin config set DB_IMAGE="$docksal_db_image"
             fi
         )
