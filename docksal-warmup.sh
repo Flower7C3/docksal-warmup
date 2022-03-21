@@ -127,9 +127,9 @@ if [[ "$(printf "%s/" $(pwd) | grep "/Desktop/")" ]]; then
     exit 2
 fi
 _domain_name=$(echo "$_domain_name" | sed 's/_/-/g')
-prompt_variable_not domain_name "Domain name (without .docksal tld, avoid underscore)" "$_domain_name" "." 2 "$@"
+prompt_variable_not domain_name "Domain name (without .docksal.site tld, avoid underscore)" "$_domain_name" "." 2 "$@"
 domain_name=$(echo "$domain_name" | sed 's/_/-/g')
-domain_name="${domain_name}.docksal"
+domain_name="${domain_name}.docksal.site"
 domain_url="http://${domain_name}"
 
 display_info "Configure application containers (read more on ${COLOR_INFO_H}https://docs.docksal.io/stack/images-versions/${COLOR_INFO})"
