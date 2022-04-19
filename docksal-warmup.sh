@@ -352,7 +352,9 @@ project_path=$(realpath .)
                 append_file "commands/db/backup-data-on-remote" "commands/backup-data"
                 append_file "commands/db/share-data-on-remote" "commands/share-data"
                 append_file "commands/db/download-data-on-remote" "commands/download-data"
-            else
+            elif [[ "$db_backup_mode" == "ssh" ]]; then
+                append_file "commands/db/backup-data" "commands/backup-data"
+            elif [[ "$db_backup_mode" == "fin" ]]; then
                 append_file "commands/db/backup-data" "commands/backup-data"
             fi
             append_file "commands/db/restore-data" "commands/restore-data"
@@ -363,9 +365,9 @@ project_path=$(realpath .)
                 fi
             fi
             (
-                display_info "Create ${COLOR_INFO_H}.docksal/services/db/dump/${COLOR_INFO} directory"
-                mkdir -p .docksal/services/db/dump/
-                echo "services/db/dump/dump*.sql" >>.docksal/.gitignore
+                display_info "Create ${COLOR_INFO_H}.docksal/database/dump/${COLOR_INFO} directory"
+                mkdir -p .docksal/database/dump/
+                echo "database/dump/dump*.sql" >>.docksal/.gitignore
             )
         fi
         if [[ "$drupal_config" == "yes" ]]; then
@@ -422,12 +424,12 @@ project_path=$(realpath .)
         display_header "Prepare custom config"
         if [[ "$db_import" == "yes" ]]; then
             display_info "Import custom db into ${COLOR_INFO_H}db${COLOR_INFO} container"
-            copy_file "services/db/init/init-example.sql"
+            copy_file "database/init/init-example.sql"
             cat ${docksal_example_dir}docksal.yml/db-custom-data.yml >>.docksal/docksal.yml
             (
-                display_info "Create ${COLOR_INFO_H}.docksal/services/db/init/${COLOR_INFO} directory"
-                mkdir -p .docksal/services/db/init/
-                echo "services/db/init/init*.sql" >>.docksal/.gitignore
+                display_info "Create ${COLOR_INFO_H}.docksal/database/init/${COLOR_INFO} directory"
+                mkdir -p .docksal/database/init/
+                echo "database/init/init*.sql" >>.docksal/.gitignore
             )
         fi
         if [[ "$java_version" != "no" ]]; then
