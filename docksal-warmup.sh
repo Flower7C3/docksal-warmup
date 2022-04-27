@@ -32,7 +32,7 @@ if [[ "$1" == "--self-update" ]]; then
     exit
 fi
 
-function get_docker_registry_versions(){
+function get_docker_registry_versions() {
     local registry=$1
     local replace=$2
     local versions
@@ -42,7 +42,7 @@ function get_docker_registry_versions(){
     done
 }
 
-function get_nodejs_versions(){
+function get_nodejs_versions() {
     local versions
     versions=($(curl -s https://nodejs.org/dist/index.json | jq -r '.[].version'))
     for version in "${versions[@]}"; do
@@ -112,7 +112,10 @@ _java_versions="no 8"
 _www_docroot="web"
 _symfony_config="no"
 _drupal_config="no"
+_drupal_config_backup_restore="no"
+_drupal_files_backup_restore="no"
 _wordpress_config="no"
+_wordpress_uploads_backup_restore="no"
 
 # VARIABLES
 display_header "Configure ${COLOR_LOG_H}project${COLOR_LOG} properties"
@@ -232,7 +235,14 @@ else
         display_header "Enable ${COLOR_LOG_H}PHP addons${COLOR_LOG}"
         prompt_variable_fixed symfony_config "Init example Symfony Framework configuration and commands?" "$_symfony_config" "yes no"
         prompt_variable_fixed drupal_config "Init example Docksal Drupal configuration and commands?" "$_drupal_config" "yes no"
-        prompt_variable_fixed wordpress_config "Init example Wordpress commands?" "$_wordpress_config" "yes no"
+        if [[ "$drupal_config" == "yes" ]]; then
+            prompt_variable_fixed drupal_config_backup_restore "Add Docksal commands for Drupal config backup and restore?" "$_drupal_config_backup_restore" "yes no"
+            prompt_variable_fixed drupal_files_backup_restore "Add Docksal commands for Drupal files backup and restore?" "$_drupal_files_backup_restore" "yes no"
+        fi
+        prompt_variable_fixed wordpress_config "Init example Wordpress configuration?" "$_wordpress_config" "yes no"
+        if [[ "$wordpress_config" == "yes" ]]; then
+            prompt_variable_fixed wordpress_uploads_backup_restore "Add Docksal commands for Wordpress uploads backup and restore?" "$_wordpress_uploads_backup_restore" "yes no"
+        fi
     else
         symfony_config="no"
         drupal_config="no"
@@ -325,7 +335,7 @@ project_path=$(realpath .)
             copy_file "commands/data/backup-data" "commands/backup-data"
             copy_file "commands/data/download-data" "commands/download-data"
             copy_file "commands/data/restore-data" "commands/restore-data"
-            if [[ "$db_backup_mode" == "http" ]] || [[ "$drupal_config" == "yes" ]] || [[ "$wordpress_config" == "yes" ]]; then
+            if [[ "$db_backup_mode" == "http" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
                 copy_file "commands/data/share-data" "commands/share-data"
             fi
         fi
@@ -365,47 +375,53 @@ project_path=$(realpath .)
                 fi
             fi
             (
-                display_info "Create ${COLOR_INFO_H}.docksal/database/dump/${COLOR_INFO} directory"
-                mkdir -p .docksal/database/dump/
-                echo "database/dump/dump*.sql" >>.docksal/.gitignore
+                display_info "Create ${COLOR_INFO_H}.docksal/services/db/database/dump/${COLOR_INFO} directory"
+                mkdir -p .docksal/services/db/database/dump/
+                echo "services/db/database/dump/dump*.sql" >>.docksal/.gitignore
             )
         fi
         if [[ "$drupal_config" == "yes" ]]; then
-            copy_file "commands/drupal/backup-dru-config" "commands/backup-dru-config"
-            copy_file "commands/drupal/restore-dru-config" "commands/restore-dru-config"
             copy_file "commands/drupal/dru-admin" "commands/dru-admin"
             copy_file "services/cli/drupal/settings.local.php" "services/cli/settings.local.php"
-            copy_file "commands/drupal/backup-dru-files" "commands/backup-dru-files"
-            copy_file "commands/drupal/share-dru-files" "commands/share-dru-files"
-            copy_file "commands/drupal/download-dru-files" "commands/download-dru-files"
-            copy_file "commands/drupal/restore-dru-files" "commands/restore-dru-files"
-            append_file "commands/drupal/backup-data" "commands/backup-data"
-            append_file "commands/drupal/share-data" "commands/share-data"
-            append_file "commands/drupal/download-data" "commands/download-data"
-            append_file "commands/drupal/restore-data" "commands/restore-data"
-            append_file "commands/drupal/_base" "commands/_base.sh"
-            (
-                display_info "Create ${COLOR_INFO_H}.docksal/services/cli/files/${COLOR_INFO} directory"
-                mkdir -p .docksal/services/cli/files/
-                echo "services/cli/files/files*.zip" >>.docksal/.gitignore
-            )
+            if [[ "$drupal_config_backup_restore" == "yes" ]]; then
+                copy_file "commands/drupal/backup-dru-config" "commands/backup-dru-config"
+                copy_file "commands/drupal/restore-dru-config" "commands/restore-dru-config"
+            fi
+            if [[ "$drupal_files_backup_restore" == "yes" ]]; then
+                copy_file "commands/drupal/backup-dru-files" "commands/backup-dru-files"
+                copy_file "commands/drupal/share-dru-files" "commands/share-dru-files"
+                copy_file "commands/drupal/download-dru-files" "commands/download-dru-files"
+                copy_file "commands/drupal/restore-dru-files" "commands/restore-dru-files"
+                append_file "commands/drupal/backup-data" "commands/backup-data"
+                append_file "commands/drupal/share-data" "commands/share-data"
+                append_file "commands/drupal/download-data" "commands/download-data"
+                append_file "commands/drupal/restore-data" "commands/restore-data"
+                append_file "commands/drupal/_base" "commands/_base.sh"
+                (
+                    display_info "Create ${COLOR_INFO_H}.docksal/services/cli/files/${COLOR_INFO} directory"
+                    mkdir -p .docksal/services/cli/files/
+                    echo "services/cli/files/files*.zip" >>.docksal/.gitignore
+                )
+            fi
         fi
         if [[ "$wordpress_config" == "yes" ]]; then
             copy_file "services/cli/wordpress/wp-config.php" "services/cli/wp-config.php"
-            copy_file "commands/wordpress/backup-wp-uploads" "commands/backup-wp-uploads"
-            copy_file "commands/wordpress/share-wp-uploads" "commands/share-wp-uploads"
-            copy_file "commands/wordpress/download-wp-uploads" "commands/download-wp-uploads"
-            copy_file "commands/wordpress/restore-wp-uploads" "commands/restore-wp-uploads"
-            append_file "commands/wordpress/backup-data" "commands/backup-data"
-            append_file "commands/wordpress/share-data" "commands/share-data"
-            append_file "commands/wordpress/download-data" "commands/download-data"
-            append_file "commands/wordpress/restore-data" "commands/restore-data"
-            append_file "commands/wordpress/_base" "commands/_base.sh"
-            (
-                display_info "Create ${COLOR_INFO_H}.docksal/services/cli/uploads/${COLOR_INFO} directory"
-                mkdir -p .docksal/services/cli/uploads/
-                echo "services/cli/uploads/uploads*.zip" >>.docksal/.gitignore
-            )
+            if [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
+                copy_file "commands/wordpress/backup-wp-uploads" "commands/backup-wp-uploads"
+                copy_file "commands/wordpress/share-wp-uploads" "commands/share-wp-uploads"
+                copy_file "commands/wordpress/download-wp-uploads" "commands/download-wp-uploads"
+                copy_file "commands/wordpress/restore-wp-uploads" "commands/restore-wp-uploads"
+                append_file "commands/wordpress/backup-data" "commands/backup-data"
+                append_file "commands/wordpress/share-data" "commands/share-data"
+                append_file "commands/wordpress/download-data" "commands/download-data"
+                append_file "commands/wordpress/restore-data" "commands/restore-data"
+                append_file "commands/wordpress/_base" "commands/_base.sh"
+                (
+                    display_info "Create ${COLOR_INFO_H}.docksal/services/cli/uploads/${COLOR_INFO} directory"
+                    mkdir -p .docksal/services/cli/uploads/
+                    echo "services/cli/uploads/uploads*.zip" >>.docksal/.gitignore
+                )
+            fi
         fi
         if [[ "$nodejs_version" != "no" ]]; then
             append_file "commands/node/prepare-site" "commands/prepare-site"
@@ -424,12 +440,12 @@ project_path=$(realpath .)
         display_header "Prepare custom config"
         if [[ "$db_import" == "yes" ]]; then
             display_info "Import custom db into ${COLOR_INFO_H}db${COLOR_INFO} container"
-            copy_file "database/init/init-example.sql"
+            copy_file "services/db/database/init/init-example.sql"
             cat ${docksal_example_dir}docksal.yml/db-custom-data.yml >>.docksal/docksal.yml
             (
-                display_info "Create ${COLOR_INFO_H}.docksal/database/init/${COLOR_INFO} directory"
-                mkdir -p .docksal/database/init/
-                echo "database/init/init*.sql" >>.docksal/.gitignore
+                display_info "Create ${COLOR_INFO_H}.docksal/services/db/database/init/${COLOR_INFO} directory"
+                mkdir -p .docksal/services/db/database/init/
+                echo "services/db/database/init/init*.sql" >>.docksal/.gitignore
             )
         fi
         if [[ "$java_version" != "no" ]]; then
@@ -482,9 +498,15 @@ project_path=$(realpath .)
         fi
         if [[ "$drupal_config" == "yes" ]]; then
             append_file "readme/docksal-how-to-drupal.md" "../README.md"
+            if [[ "$drupal_files_backup_restore" == "yes" ]]; then
+                append_file "readme/docksal-how-to-drupal-files.md" "../README.md"
+            fi
         fi
         if [[ "$wordpress_config" == "yes" ]]; then
             append_file "readme/docksal-how-to-wordpress.md" "../README.md"
+            if [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
+                append_file "readme/docksal-how-to-wordpress-uploads.md" "../README.md"
+            fi
         fi
         replace_in_file '../README.md' 'PROJECT_NAME' "$(printf ${project_name} | sed 's:/:\\/:g')"
         replace_in_file '../README.md' 'VIRTUAL_HOST' "$(printf ${domain_url} | sed 's:/:\\/:g')"
