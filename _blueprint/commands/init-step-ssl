@@ -1,3 +1,4 @@
 printf "${COLOR_YELLOW_BG} Step ${COLOR_YELLOW} SSL create...${COLOR_OFF}\n"
+fin addon install mkcert -g
 fin mkcert create
 fin start
