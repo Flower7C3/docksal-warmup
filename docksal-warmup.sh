@@ -516,22 +516,28 @@ project_path=$(realpath .)
 )
 
 if [[ $(type "git" 2>/dev/null) ]]; then
-    confirm_or_exit "Save Docksal configuration to git?"
-    if [[ ! -d .git ]]; then
-        git init
+    print_new_line
+    prompt_variable_fixed _save_to_git "Save Docksal configuration to git?" "no" "yes no" ""
+    if [[ "$_save_to_git" == "yes" ]]; then
+        if [[ ! -d .git ]]; then
+            git init
+        fi
+        git add .
+        git commit -m "Docksal configuration initialize"
     fi
-    git add .
-    git commit -m "Docksal configuration initialize"
 fi
 
-confirm_or_exit "Initialize Docker project?" "You can init project manually with ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory."
-
-display_info "Initialize Docker project (executing ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory.)"
-if [[ $(type "yes") ]]; then
-    yes | fin init
+print_new_line
+prompt_variable_fixed _init_docksal "Initialize Docker project?" "no" "yes no" ""
+if [[ "$_init_docksal" == "yes" ]]; then
+    display_info "Initializing Docker project (executing ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory.)"
+    if [[ $(type "yes") ]]; then
+        yes | fin init
+    else
+        fin init
+    fi
 else
-    fin init
+    display_info "You can initialize project manually later with ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory."
 fi
-color_reset
 
 print_new_line
