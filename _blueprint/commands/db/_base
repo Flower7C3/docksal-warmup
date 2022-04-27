@@ -1,5 +1,5 @@
 #-------------------------- Database config --------------------------------
-db_dump_dir_path="$PROJECT_ROOT/.docksal/services/db/database/dump"
+db_dump_dir_path="$PROJECT_ROOT/.docksal/database/dump"
 db_dump_file_pattern="dump*.sql*"
 db_dump_file_name="dump-${REMOTE_RDS_DB_NAME}-${timestamp}"
 db_dump_sql_file_name="${db_dump_file_name}.sql"

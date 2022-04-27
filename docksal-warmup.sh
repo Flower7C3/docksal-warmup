@@ -375,9 +375,9 @@ project_path=$(realpath .)
                 fi
             fi
             (
-                display_info "Create ${COLOR_INFO_H}.docksal/services/db/database/dump/${COLOR_INFO} directory"
-                mkdir -p .docksal/services/db/database/dump/
-                echo "services/db/database/dump/dump*.sql" >>.docksal/.gitignore
+                display_info "Create ${COLOR_INFO_H}.docksal/database/dump/${COLOR_INFO} directory"
+                mkdir -p .docksal/database/dump/
+                echo "database/dump/dump*.sql" >>.docksal/.gitignore
             )
         fi
         if [[ "$drupal_config" == "yes" ]]; then
@@ -440,12 +440,12 @@ project_path=$(realpath .)
         display_header "Prepare custom config"
         if [[ "$db_import" == "yes" ]]; then
             display_info "Import custom db into ${COLOR_INFO_H}db${COLOR_INFO} container"
-            copy_file "services/db/database/init/init-example.sql"
+            copy_file "database/init/init-example.sql"
             cat ${docksal_example_dir}docksal.yml/db-custom-data.yml >>.docksal/docksal.yml
             (
-                display_info "Create ${COLOR_INFO_H}.docksal/services/db/database/init/${COLOR_INFO} directory"
-                mkdir -p .docksal/services/db/database/init/
-                echo "services/db/database/init/init*.sql" >>.docksal/.gitignore
+                display_info "Create ${COLOR_INFO_H}.docksal/database/init/${COLOR_INFO} directory"
+                mkdir -p .docksal/database/init/
+                echo "database/init/init*.sql" >>.docksal/.gitignore
             )
         fi
         if [[ "$java_version" != "no" ]]; then
