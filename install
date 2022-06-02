@@ -9,4 +9,5 @@ git pull origin master
 git submodule update --init --recursive
 git submodule foreach git pull origin master
 
+mkdir -p ~/.docksal/commands
 ln -snf ~/.docksal/tools/warmup/docksal-warmup.sh ~/.docksal/commands/warmup
