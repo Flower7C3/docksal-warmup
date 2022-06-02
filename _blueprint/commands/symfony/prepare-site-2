@@ -1,0 +1,15 @@
+#-------------------------- Execution --------------------------------
+# Initialize settings files
+copy_settings_file "${PROJECT_ROOT}/.docksal/services/cli/parameters.yaml" "${PROJECT_ROOT}/app/config/parameters.yaml"
+ln -sf .htaccess.docksal web/.htaccess
+
+# Install site
+cd "$PROJECT_ROOT"
+composer install -n
+
+# Rebuild cache
+rm -rf var/cache/*
+
+# Install assets
+php bin/console assets:install
+#-------------------------- END: Execution --------------------------------

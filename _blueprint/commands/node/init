@@ -1,2 +1,2 @@
-printf "${COLOR_YELLOW_BG} Step ${COLOR_YELLOW} NVM install...${COLOR_OFF}\n"
+printf "${COLOR_YELLOW_BG} Step: NVM install...${COLOR_OFF}\n"
 fin exec "nvm install"

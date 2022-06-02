@@ -2,11 +2,11 @@
 
 ## Warmup Docksal configuration for project
 ##
-## Usage: fin warmup [--self-update] [<PROJECT_NAME> <DOMAIN_NAME> <APPLICATION_STACK>]
+## Usage: fin warmup [--self-update | --cache-clear | <APPLICATION_STACK> <DOMAIN_NAME>]
 ##      --self-update — download latest version from GitHub
-##      PROJECT_NAME — project directory name
-##      DOMAIN_NAME — project domain name (without .docksal tld, avoid underscore)
+##      --cache-clear – clear Docker registry cache
 ##      APPLICATION_STACK — configuration stack: custom, php, php-nodb, node, boilerplate
+##      DOMAIN_NAME — project domain name (without .docksal.site tld, avoid underscore)
 
 if [[ -L "$BASH_SOURCE" ]]; then
     _bash_source="$(readlink "$BASH_SOURCE")"
@@ -20,25 +20,28 @@ required_programs=("${custom_programs[@]}" "${system_programs[@]}")
 
 source "$(dirname "$_bash_source")/vendor/bash-tools/_base.sh"
 
-# WELCOME
-program_title "Docksal configuration warmup"
-if [[ "$1" == "--self-update" ]]; then
-    display_header "Self update"
-    cd "$(dirname "$_bash_source")"
-    git checkout -- .
-    git pull origin master
-    git submodule update --init --recursive
-    git submodule foreach git pull origin master
-    exit
-fi
+function get_cached_versions() {
+    local key=$1
+    local file
+    file="/tmp/docksal-warmup-$key"
+    find $file -type f -mtime +1 -exec rm {} \; 2>/dev/null
+    cat "$file" 2>/dev/null
+}
+
+function set_cached_versions() {
+    local key=$1
+    local file="/tmp/docksal-warmup-$key"
+    local stream=$2
+    printf '%s' "$stream" >$file
+}
 
 function get_docker_registry_versions() {
     local registry=$1
     local replace=$2
     local versions
-    versions=($(fin image registry $registry | grep -v build | grep -v edge | grep -v ide | grep -v codebase | grep -v latest | grep -v stable | grep -v '-'))
+    versions=($(fin image registry $registry | grep -v build | grep -v edge | grep -v ide | grep -v codebase | grep -v latest | grep -v stable | grep -v '-' | sed "s|$replace||g" | sort))
     for version in "${versions[@]}"; do
-        echo "$version" | sed "s|$replace||g"
+        echo "$version"
     done
 }
 
@@ -82,6 +85,29 @@ function replace_in_file() {
     display_info "Replaced in file ${COLOR_INFO_H}${file_path}${COLOR_INFO} from ${COLOR_INFO_H}${text_from}${COLOR_INFO} to ${COLOR_INFO_H}${text_to}${COLOR_INFO}"
 }
 
+# WELCOME
+program_title "Docksal configuration warmup"
+
+if [[ "$1" == "--self-update" ]]; then
+    display_header "Self update"
+    cd "$(dirname "$_bash_source")"
+    git checkout -- .
+    git pull origin master
+    git submodule update --init --recursive
+    git submodule foreach git pull origin master
+    exit
+fi
+
+if [[ "$1" == "--cache-clear" ]]; then
+    display_header "Cache clear"
+    cd "$(dirname "$_bash_source")"
+    set_cached_versions "http_server_versions" ""
+    set_cached_versions "php_versions" ""
+    set_cached_versions "db_versions" ""
+    set_cached_versions "nodejs_versions" ""
+    exit
+fi
+
 # VALIDATE
 is_system_ok=true
 for cmd in "${required_programs[@]}"; do
@@ -105,6 +131,7 @@ docksal_example_dir="$(realpath $(dirname "$_bash_source")/_blueprint/)/"
 _project_name="example_$(date "+%Y%m%d_%H%M%S")"
 _application_stack="custom"
 _application_stacks="custom php php-nodb node boilerplate"
+_node_app_server="no"
 _db_import="yes"
 _db_backup_mode="no"
 _java_version="no"
@@ -119,37 +146,43 @@ _wordpress_uploads_backup_restore="no"
 
 # VARIABLES
 display_header "Configure ${COLOR_LOG_H}project${COLOR_LOG} properties"
-prompt_variable_not_null project_name "Project name (lowercase alphanumeric, underscore, and hyphen)" "$_project_name" 1 "$@"
-_domain_name=${project_name}
-if [[ "$project_name" == "." ]]; then
-    confirm_or_exit "Really want to configure Docksal in ${COLOR_QUESTION_B}$(pwd)${COLOR_QUESTION} directory?"
-    _domain_name="$(basename $(pwd))"
-fi
 if [[ "$(printf "%s/" $(pwd) | grep "/Desktop/")" ]]; then
     display_error "Please do not create Docker projects on DESKTOP, because it may cause mounting problems."
     exit 2
 fi
-_domain_name=$(echo "$_domain_name" | sed 's/_/-/g')
-prompt_variable_not domain_name "Domain name (without .docksal.site tld, avoid underscore)" "$_domain_name" "." 2 "$@"
-domain_name=$(echo "$domain_name" | sed 's/_/-/g')
-domain_name="${domain_name}.docksal.site"
-domain_url="https://${domain_name}"
+while true; do
+    if [[ ! -d .git ]]; then
+        prompt_variable_not_null project_name "Project name (lowercase alphanumeric, underscore, and hyphen)" "$_project_name"
+        _domain_name=${project_name}
+        create_project_directory="yes"
+        if [[ "$project_name" == "." ]]; then
+            confirm_or_exit "Really want to configure Docksal in ${COLOR_QUESTION_B}$(pwd)${COLOR_QUESTION} directory?"
+            create_project_directory="no"
+            _domain_name="$(basename $(pwd))"
+        fi
+    else
+        display_info "Creating project in ${COLOR_INFO_B}$(pwd)${COLOR_INFO} directory."
+        create_project_directory="no"
+        _domain_name="$(basename $(pwd))"
+    fi
+    _domain_name=$(echo "$_domain_name" | sed 's/_/-/g')
+    prompt_variable_not domain_name "Domain name (without .docksal.site tld, avoid underscore)" "$_domain_name" "." 2 "$@"
+    domain_name=$(echo "$domain_name" | sed 's/_/-/g')
+    domain_name="${domain_name}.docksal.site"
+    domain_url="https://${domain_name}"
+    display_info "Configure application containers (read more on ${COLOR_INFO_H}https://docs.docksal.io/stack/images-versions/${COLOR_INFO})"
+    prompt_variable_fixed application_stack "Application stack" "$_application_stack" "$_application_stacks" 1 "$@"
 
-display_info "Configure application containers (read more on ${COLOR_INFO_H}https://docs.docksal.io/stack/images-versions/${COLOR_INFO})"
-prompt_variable_fixed application_stack "Application stack" "$_application_stack" "$_application_stacks" 3 "$@"
-if [[ "$application_stack" == "node" ]]; then
-    _db_version="no"
-fi
+    if [[ "$application_stack" == "boilerplate" ]]; then
+        display_header "fin project create"
+        fin project create
+        exit
+    fi
 
-if [[ "$application_stack" == "boilerplate" ]]; then
-    display_header "fin project create"
-    fin project create
-    exit
-else
-    _http_server_versions=""
-    _php_versions=""
-    _db_versions=""
-    _nodejs_versions=""
+    _http_server_versions=$(get_cached_versions "http_server_versions")
+    _php_versions=$(get_cached_versions "php_versions")
+    _db_versions=$(get_cached_versions "db_versions")
+    _nodejs_versions=$(get_cached_versions "nodejs_versions")
     while true; do
         display_line ""
         display_header "Define ${COLOR_LOG_H}containers${COLOR_LOG} configuration"
@@ -158,52 +191,63 @@ else
             display_info "Configure ${COLOR_INFO_H}web${COLOR_INFO} container"
             if [[ "$_http_server_versions" == "" ]]; then
                 display_log "Fetch Docksal web images versions from registry (read more on ${COLOR_LOG_H}https://hub.docker.com/r/docksal/web/${COLOR_LOG})"
-                _apache_versions_arr=($(get_docker_registry_versions docksal/apache docksal/))
-                _nginx_versions_arr=($(get_docker_registry_versions docksal/nginx docksal/))
-                _http_server_version="${_apache_versions_arr[${#_apache_versions_arr[@]} - 1]}"
-                _http_server_versions="no ${_apache_versions_arr[@]} ${_nginx_versions_arr[@]}"
+                _http_server_versions="no $(get_docker_registry_versions docksal/nginx docksal/) $(get_docker_registry_versions docksal/apache docksal/)"
+                set_cached_versions "http_server_versions" "${_http_server_versions}"
+            fi
+            _http_server_versions_arr=(${_http_server_versions})
+            if [[ $_http_server_version == '' ]]; then
+                _http_server_version="${_http_server_versions_arr[${#_http_server_version_arr[@]} - 1]}"
             fi
             prompt_variable_fixed http_server_version "HTTP server version" "$_http_server_version" "$_http_server_versions"
         fi
         php_version="no"
-        if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" ]]; then
+        if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" || "$application_stack" == "node" ]]; then
             display_info "Configure ${COLOR_INFO_H}PHP${COLOR_INFO} version on ${COLOR_INFO_H}cli${COLOR_INFO} container"
             if [[ "$_php_versions" == "" ]]; then
                 display_log "Fetch Docksal cli images versions from registry (read more on ${COLOR_LOG_H}https://hub.docker.com/r/docksal/cli/${COLOR_LOG})"
-                _php_versions_arr=($(get_docker_registry_versions docksal/cli docksal/cli:))
-                _php_version="${_php_versions_arr[${#_php_versions_arr[@]} - 1]}"
-                _php_versions="no ${_php_versions_arr[@]}"
-
+                _php_versions="no $(get_docker_registry_versions docksal/cli docksal/cli:)"
+                set_cached_versions "php_versions" "${_php_versions}"
             fi
-            prompt_variable_fixed php_version "PHP version" "$_php_version" "$_php_versions"
+            _php_versions_arr=(${_php_versions})
+            if [[ $_php_version == '' ]]; then
+                _php_version="${_php_versions_arr[${#_php_version_arr[@]} - 1]}"
+            fi
+            if [[ "$application_stack" == "node" ]]; then
+                prompt_variable php_version "PHP version" "$_php_version" 1 $_php_version
+            else
+                prompt_variable_fixed php_version "PHP version" "$_php_version" "$_php_versions"
+            fi
         fi
         nodejs_version="no"
         if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" || "$application_stack" == "node" ]]; then
             display_info "Configure ${COLOR_INFO_H}Node.js${COLOR_INFO} version on ${COLOR_INFO_H}cli${COLOR_INFO} container"
             if [[ "$_nodejs_versions" == "" ]]; then
                 display_log "Fetch Node.js versions from registry (read more on ${COLOR_LOG_H}https://nodejs.org/en/download/releases/${COLOR_LOG})"
-                _nodejs_versions_arr=($(get_nodejs_versions))
-                _nodejs_version="${_nodejs_versions_arr[0]}"
-                _nodejs_versions="${_nodejs_versions_arr[@]}"
+                _nodejs_versions="$(get_nodejs_versions)"
+                set_cached_versions "nodejs_versions" "${_nodejs_versions}"
+            fi
+            _nodejs_versions_arr=(${_nodejs_versions})
+            if [[ $_nodejs_version == '' ]]; then
+                _nodejs_version=${_nodejs_versions_arr[0]}
             fi
             prompt_variable_fixed nodejs_version "Node version" "$_nodejs_version" "$_nodejs_versions"
         fi
         java_version="no"
-        if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" || "$application_stack" == "node" ]]; then
+        if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "php-nodb" ]]; then
             display_info "Configure ${COLOR_INFO_H}JAVA${COLOR_INFO} version on ${COLOR_INFO_H}cli${COLOR_INFO} container"
             prompt_variable_fixed java_version "JAVA version" "$_java_version" "$_java_versions"
         fi
         prompt_variable www_docroot "WWW docroot (place where will be index file)" "$_www_docroot"
         db_version="no"
-        db_import="no"
-        if [[ "$application_stack" == "custom" || "$application_stack" == "php" || "$application_stack" == "node" ]]; then
+        if [[ "$application_stack" == "custom" || "$application_stack" == "php" ]]; then
             display_info "Configure ${COLOR_INFO_H}db${COLOR_INFO} container"
             if [[ "$_db_versions" == "" ]]; then
                 display_log "Fetch Docksal db images versions from registry (read more on ${COLOR_LOG_H}https://hub.docker.com/r/docksal/db/${COLOR_LOG})"
-                _mysql_versions_arr=($(get_docker_registry_versions docksal/mysql docksal/))
-                _mariadb_versions_arr=($(get_docker_registry_versions docksal/mariadb docksal/))
+                _db_versions="no $(get_docker_registry_versions docksal/mysql docksal/) $(get_docker_registry_versions docksal/mariadb docksal/)"
+                set_cached_versions "db_versions" "${_db_versions}"
+            fi
+            if [[ $_db_version == '' ]]; then
                 _db_version="mariadb:10.5"
-                _db_versions="no ${_mysql_versions_arr[@]} ${_mariadb_versions_arr[@]}"
             fi
             prompt_variable_fixed db_version "DB version" "$_db_version" "$_db_versions"
         fi
@@ -212,7 +256,7 @@ else
             docksal_stack="default"
         elif [[ "$http_server_version" != "no" && "$php_version" != "no" && "$db_version" == "no" ]]; then
             docksal_stack="default-nodb"
-        elif [[ "$http_server_version" == "no" && "$php_version" == "no" && "$db_version" == "no" && "$nodejs_version" != "no" ]]; then
+        elif [[ "$http_server_version" == "no" && "$db_version" == "no" && "$nodejs_version" != "no" ]]; then
             docksal_stack="node"
         fi
         if [[ "$docksal_stack" == "" ]]; then
@@ -230,10 +274,13 @@ else
         fi
     done
 
-    if [[ "$php_version" != "no" ]]; then
+    symfony_config="no"
+    drupal_config="no"
+    wordpress_config="no"
+    if [[ "$docksal_stack" == "default" && "$php_version" != "no" ]]; then
         display_line ""
         display_header "Enable ${COLOR_LOG_H}PHP addons${COLOR_LOG}"
-        prompt_variable_fixed symfony_config "Init example Symfony Framework configuration and commands?" "$_symfony_config" "yes no"
+        prompt_variable_fixed symfony_config "Init example Symfony Framework configuration and commands?" "$_symfony_config" "no 2 3 4 5 6"
         prompt_variable_fixed drupal_config "Init example Docksal Drupal configuration and commands?" "$_drupal_config" "yes no"
         if [[ "$drupal_config" == "yes" ]]; then
             prompt_variable_fixed drupal_config_backup_restore "Add Docksal commands for Drupal config backup and restore?" "$_drupal_config_backup_restore" "yes no"
@@ -243,25 +290,32 @@ else
         if [[ "$wordpress_config" == "yes" ]]; then
             prompt_variable_fixed wordpress_uploads_backup_restore "Add Docksal commands for Wordpress uploads backup and restore?" "$_wordpress_uploads_backup_restore" "yes no"
         fi
-    else
-        symfony_config="no"
-        drupal_config="no"
-        wordpress_config="no"
     fi
+    db_import="no"
+    db_backup_mode="no"
     if [[ "$db_version" != "no" ]]; then
         display_line ""
         display_header "Enable ${COLOR_LOG_H}DB addons${COLOR_LOG}"
         prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
         prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh' to remote host, execute mysqldump and scp to local; execute mysqldump via 'fin' on remote database and save as local file; dump directly on remote and share as 'http' deep link?" "$_db_backup_mode" "ssh fin http no"
-    else
-        db_import="no"
-        db_backup_mode="skip"
     fi
-fi
-# PROGRAM
-confirm_or_exit "Save above options as Docksal configuration?"
+    node_app_server="no"
+    if [[ "$nodejs_version" != "no" ]]; then
+        display_line ""
+        display_header "Enable ${COLOR_LOG_H}Node addons${COLOR_LOG}"
+        prompt_variable_fixed node_app_server "Create Node app server from port 3000 on ${COLOR_QUESTION_H}nodeapp.$domain_name${COLOR_QUESTION} domain?" "$_node_app_server" "yes no"
+    fi
+    # PROGRAM
+    display_line ""
+    prompt_variable_fixed _save_to_docksal "Save above options as Docksal configuration?" "no" "yes no" ""
+    if [[ "$_save_to_docksal" == "yes" ]]; then
+        break
+    else
+        confirm_or_exit "Repeat configuration process?"
+    fi
+done
 
-if [[ "$project_name" != "." ]]; then
+if [[ "$create_project_directory" == "yes" ]]; then
     display_info "Create ${COLOR_INFO_H}$project_name${COLOR_INFO} project directory"
     mkdir -p "$project_name"
     cd "$project_name"
@@ -270,7 +324,8 @@ else
 fi
 project_path=$(realpath .)
 (
-    trap "rm -rf \"$project_path\"/.docksal/;exit 2" SIGINT
+    display_line ""
+    trap "rm -rf .docksal/;exit 2" SIGINT
     (
         if [[ -d .docksal ]]; then
             display_error "Docksal configuration already exists! We need to remove it first."
@@ -284,16 +339,20 @@ project_path=$(realpath .)
         fin config generate --docroot="$www_docroot" --stack=${docksal_stack}
         (
             copy_file "docksal.gitignore" ".gitignore"
-            copy_file "docroot.gitignore" "../$www_docroot/.gitignore"
+            if [[ "$wordpress_uploads_backup_restore" == "yes" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$db_backup_mode" == "http" ]]; then
+                copy_file "docroot.gitignore" "../$www_docroot/.gitignore"
+            fi
         )
         (
             display_info "Set ${COLOR_INFO_H}${domain_name}${COLOR_INFO} as hostname"
             fin config set VIRTUAL_HOST="${domain_name}"
         )
         (
-            display_info "Setup web image ${COLOR_INFO_H}${docksal_web_image}${COLOR_INFO}"
-            docksal_web_image="docksal/${http_server_version}"
-            fin config set WEB_IMAGE="$docksal_web_image"
+            if [[ "$http_server_version" != "no" ]]; then
+                display_info "Setup web image ${COLOR_INFO_H}${docksal_web_image}${COLOR_INFO}"
+                docksal_web_image="docksal/${http_server_version}"
+                fin config set WEB_IMAGE="$docksal_web_image"
+            fi
         )
         (
             display_info "Setup cli image ${COLOR_INFO_H}${docksal_cli_image}${COLOR_INFO}"
@@ -304,6 +363,7 @@ project_path=$(realpath .)
             if [[ "$nodejs_version" != "no" ]]; then
                 display_info "Installed ${COLOR_INFO_H}.nvmrc${COLOR_INFO} file. Read more on ${COLOR_INFO_H}https://github.com/creationix/nvm#nvmrc"
                 echo ${nodejs_version} >.nvmrc
+                copy_file "services/cli/node/package.json" "../package.json"
             fi
         )
         (
@@ -314,7 +374,7 @@ project_path=$(realpath .)
             fi
         )
         (
-            if [[ "$db_import" == "yes" || "$java_version" != "no" ]]; then
+            if [[ "$db_import" == "yes" || "$java_version" != "no" ]] || [[ "$node_app_server" != "no" ]]; then
                 echo "services:" >>.docksal/docksal.yml
             fi
         )
@@ -329,7 +389,13 @@ project_path=$(realpath .)
         fi
         append_file "commands/init-step-ssl" "commands/init"
         append_file "commands/init-step-prepare-site" "commands/init"
+        if [[ "$db_version" != "no" ]]; then
+            append_file "commands/init-step-prepare-db" "commands/init"
+        fi
         copy_file "commands/_base.sh"
+        if [[ "$wordpress_uploads_backup_restore" == "yes" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$db_backup_mode" == "http" ]]; then
+            append_file "commands/_base-backups" "commands/_base.sh"
+        fi
         copy_file "commands/prepare-site"
         if [[ "$db_backup_mode" != "no" ]]; then
             copy_file "commands/data/backup-data" "commands/backup-data"
@@ -341,11 +407,15 @@ project_path=$(realpath .)
         fi
         if [[ "$nodejs_version" != "no" ]]; then
             copy_file "commands/node/gulp" "commands/gulp"
+            copy_file "commands/node/yarn" "commands/yarn"
             copy_file "commands/node/npm" "commands/npm"
         fi
         if [[ "$symfony_config" != "no" ]]; then
-            copy_file "commands/symfony/console2" "commands/console2"
-            copy_file "commands/symfony/console" "commands/console"
+            if [[ "$symfony_config" -ge "3" ]]; then
+                copy_file "commands/symfony/console-3" "commands/console"
+            else
+                copy_file "commands/symfony/console-2" "commands/console"
+            fi
         fi
         if [[ "$db_version" != "no" ]]; then
             if [[ "$db_backup_mode" == "http" ]]; then
@@ -426,8 +496,14 @@ project_path=$(realpath .)
         if [[ "$nodejs_version" != "no" ]]; then
             append_file "commands/node/prepare-site" "commands/prepare-site"
         fi
+
         if [[ "$symfony_config" != "no" ]]; then
-            append_file "commands/symfony/prepare-site" "commands/prepare-site"
+            if [[ "$symfony_config" -ge "2" || $symfony_config -le "3" ]]; then
+                append_file "commands/symfony/prepare-site-2" "commands/prepare-site"
+            fi
+            if [[ "$symfony_config" -ge "4" ]]; then
+                append_file "commands/symfony/prepare-site-4" "commands/prepare-site"
+            fi
         fi
         if [[ "$drupal_config" == "yes" ]]; then
             append_file "commands/drupal/prepare-site" "commands/prepare-site"
@@ -441,7 +517,7 @@ project_path=$(realpath .)
         if [[ "$db_import" == "yes" ]]; then
             display_info "Import custom db into ${COLOR_INFO_H}db${COLOR_INFO} container"
             copy_file "database/init/init-example.sql"
-            cat ${docksal_example_dir}docksal.yml/db-custom-data.yml >>.docksal/docksal.yml
+            append_file docksal.yml/db-custom-data.yml docksal.yml
             (
                 display_info "Create ${COLOR_INFO_H}.docksal/database/init/${COLOR_INFO} directory"
                 mkdir -p .docksal/database/init/
@@ -453,22 +529,36 @@ project_path=$(realpath .)
             mkdir -p .docksal/services/cli/
             copy_file "services/cli/Dockerfile-with-java" "services/cli/Dockerfile"
             replace_in_file .docksal/services/cli/Dockerfile "FROM \(.*\)" "FROM $(echo "$docksal_cli_image" | sed 's/\//\\\//g')"
-            cat ${docksal_example_dir}docksal.yml/cli-with-java.yml >>.docksal/docksal.yml
+            append_file docksal.yml/cli-with-java.yml docksal.yml
         fi
         if [[ "$symfony_config" != "no" ]]; then
             display_info "Add ${COLOR_INFO_H}Symfony parameters${COLOR_INFO} to ${COLOR_INFO_H}cli${COLOR_INFO} container"
             mkdir -p .docksal/services/cli/
-            copy_file "services/cli/symfony/parameters.yaml" "services/cli/parameters.yaml"
-            (
-                symfony_secret=$(date +%s%N | shasum | base64 | head -c 32)
-                replace_in_file .docksal/services/cli/parameters.yaml "random_secret_string" "${symfony_secret}"
-            )
-            (
-                symfony_base_url=$(printf ${domain_url} | sed 's:/:\\/:g')
-                replace_in_file .docksal/services/cli/parameters.yaml "example_domain_name" "${symfony_base_url}"
-            )
-            copy_file "services/cli/symfony/docksal.htaccess" "../${www_docroot}/.htaccess.docksal"
-            copy_file "services/cli/symfony/app_docksal.php" "../${www_docroot}/app_docksal.php"
+            if [[ "$symfony_config" -ge "2" || $symfony_config -le "3" ]]; then
+                copy_file "services/cli/symfony/parameters.yaml" "services/cli/parameters.yaml"
+                (
+                    symfony_secret=$(date +%s%N | shasum | base64 | head -c 32)
+                    replace_in_file .docksal/services/cli/parameters.yaml "random_secret_string" "${symfony_secret}"
+                )
+                (
+                    symfony_base_url=$(printf ${domain_url} | sed 's:/:\\/:g')
+                    replace_in_file .docksal/services/cli/parameters.yaml "example_domain_name" "${symfony_base_url}"
+                )
+                copy_file "services/cli/symfony/docksal.htaccess" "../${www_docroot}/.htaccess.docksal"
+                copy_file "services/cli/symfony/app_docksal.php" "../${www_docroot}/app_docksal.php"
+            elif [[ "$symfony_config" -ge "4" ]]; then
+                copy_file "services/cli/symfony/dot_env" "services/cli/dot_env"
+                (
+                    symfony_secret=$(date +%s%N | shasum | base64 | head -c 32)
+                    replace_in_file .docksal/services/cli/parameters.yaml "random_secret_string" "${symfony_secret}"
+                )
+            fi
+        fi
+        if [[ "$node_app_server" != "no" ]]; then
+            display_info "Create ${COLOR_INFO_H}Node app${COLOR_INFO} container"
+            append_file docksal.yml/cli-with-node-server.yml docksal.yml
+            replace_in_file docksal.yml "DOCROOT" "${www_docroot}"
+            copy_file services/cli/nodeapp/demo.js ../${www_docroot}/demo.js
         fi
     )
     (
@@ -480,6 +570,7 @@ project_path=$(realpath .)
         fi
         append_file "readme/docksal-setup-docksal.md" "../README.md"
         append_file "readme/docksal-setup-init.md" "../README.md"
+        append_file "readme/docksal-setup-bugs.md" "../README.md"
         append_file "readme/docksal-how-to.md" "../README.md"
         if [[ "$db_version" != "no" ]]; then
             if [[ "$db_backup_mode" == "ssh" ]]; then
@@ -493,8 +584,15 @@ project_path=$(realpath .)
         if [[ "$nodejs_version" != "no" ]]; then
             append_file "readme/docksal-how-to-node.md" "../README.md"
         fi
+        if [[ "$node_app_server" != "no" ]]; then
+            append_file "readme/docksal-how-to-node-server.md" "../README.md"
+        fi
         if [[ "$symfony_config" != "no" ]]; then
-            append_file "readme/docksal-how-to-symfony.md" "../README.md"
+            if [[ "$symfony_config" -ge "3" ]]; then
+                append_file "readme/docksal-how-to-symfony-3.md" "../README.md"
+            else
+                append_file "readme/docksal-how-to-symfony-2.md" "../README.md"
+            fi
         fi
         if [[ "$drupal_config" == "yes" ]]; then
             append_file "readme/docksal-how-to-drupal.md" "../README.md"

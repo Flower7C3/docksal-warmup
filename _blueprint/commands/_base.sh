@@ -59,12 +59,17 @@ function _confirm() {
 #-------------------------- Contents --------------------------------
 # Console colors
 declare -r COLOR_RED='\033[0;31m'
-declare -r COLOR_RED_BG='\033[0;41m'
+declare -r COLOR_RED_B='\033[1;31m'
+declare -r COLOR_RED_H='\033[1;91m'
+declare -r COLOR_RED_BG='\033[41m'
 declare -r COLOR_YELLOW='\033[0;33m'
+declare -r COLOR_YELLOW_B='\033[1;33m'
 declare -r COLOR_YELLOW_H='\033[1;93m'
+declare -r COLOR_YELLOW_BG='\033[43m'
 declare -r COLOR_PURPLE='\033[0;35m'
 declare -r COLOR_PURPLE_B='\033[1;35m'
 declare -r COLOR_PURPLE_H='\033[1;95m'
+declare -r COLOR_PURPLE_BG='\033[45m'
 declare -r COLOR_OFF='\033[0m'
 
 #-------------------------- Variables --------------------------------
@@ -82,14 +87,4 @@ fi
 cd $PROJECT_ROOT
 
 timestamp=$(date +%Y%m%d_%H%M%S)
-if [[ "" == "$SECRET_PART_NAME" ]]; then
-    if [[ $(type "git" 2>/dev/null) ]] && [[ -d .git ]]; then
-        SECRET_PART_NAME=$(git rev-list --max-parents=0 HEAD)
-    else
-        printf "${COLOR_RED}Please initialize git repository and do first commit or define ${COLOR_RED_BG}SECRET_PART_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
-        exit 11
-    fi
-fi
-secret_dir_name="secret-app-dump-${SECRET_PART_NAME}"
-
 web_dir_path=$(realpath "${PROJECT_ROOT}/${DOCROOT}/")

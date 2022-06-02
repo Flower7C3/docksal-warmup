@@ -1,0 +1,8 @@
+    nodeapp:
+        extends:
+            file: ${HOME}/.docksal/stacks/services.yml
+            service: cli
+        labels:
+            - io.docksal.virtual-host=nodeapp.${VIRTUAL_HOST}
+            - io.docksal.virtual-port=3000
+        command: ["bash", "-lc", "node DOCROOT/demo.js"]

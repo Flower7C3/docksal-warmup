@@ -1,0 +1,2 @@
+printf "${COLOR_YELLOW_BG} Step: preparing database...${COLOR_OFF}\n"
+fin restore-db

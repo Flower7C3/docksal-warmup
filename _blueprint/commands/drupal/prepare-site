@@ -8,7 +8,8 @@ copy_settings_file "${PROJECT_ROOT}/.docksal/services/cli/settings.local.php" "$
 
 # Install site
 cd "$PROJECT_ROOT"
-composer install
+composer install -n
+
 # Rebuild cache
 cd "$PROJECT_ROOT"
 drush cache:rebuild

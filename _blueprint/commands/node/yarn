@@ -2,9 +2,9 @@
 
 #: exec_target = cli
 
-## Execute Symfony2 console
+## Execute yarn command
 ##
-## Usage: fin console2
+## Usage: fin yarn
 
 # Abort if anything fails
 set -e
@@ -13,6 +13,6 @@ set -e
 source ~/.profile
 
 #-------------------------- Execution --------------------------------
-cd "$PROJECT_ROOT"
-php app/console ${@}
+cd "${PROJECT_ROOT}"
+yarn ${@}
 #-------------------------- END: Execution --------------------------------

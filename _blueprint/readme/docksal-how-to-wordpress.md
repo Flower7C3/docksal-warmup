@@ -1,3 +1,3 @@
 ### Wordpress
 
-* `fin wp-cli`
+* `fin wp` - console

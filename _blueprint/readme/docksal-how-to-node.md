@@ -1,5 +1,6 @@
 ### Node
 
-* `fin npm install` – install Node dependencies
-* `fin npm [command]` – run any Node command
-* `fin gulp [command]` – run any Gulp command
+Run command with arguments on `cli` container:
+* `fin npm [arguments]`
+* `fin yarn [arguments]`
+* `fin gulp [arguments]`

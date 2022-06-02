@@ -1,0 +1,4 @@
+APP_ENV=dev
+APP_SECRET=random_secret_string
+DATABASE_URL=mysql://user:user@db:3306/default
+HTTPS=on
