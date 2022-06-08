@@ -11,24 +11,24 @@ set -e
 source $(dirname ${BASH_SOURCE})/_base.sh
 cd "$PROJECT_ROOT"
 
-if [[ "" == "$REMOTE_RDS_HOSTNAME" ]]; then
-    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_RDS_HOSTNAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+if [[ "" == "$RDS_HOSTNAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_HOSTNAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 1
 fi
-if [[ "" == "$REMOTE_RDS_PORT" ]]; then
-    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_RDS_PORT${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+if [[ "" == "$RDS_PORT" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_PORT${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 2
 fi
-if [[ "" == "$REMOTE_RDS_DB_NAME" ]]; then
-    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_RDS_DB_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+if [[ "" == "$RDS_DB_NAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_DB_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 3
 fi
-if [[ "" == "$REMOTE_RDS_USERNAME" ]]; then
-    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_RDS_USERNAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+if [[ "" == "$RDS_USERNAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_USERNAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 4
 fi
-if [[ "" == "$REMOTE_RDS_PASSWORD" ]]; then
-    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_RDS_PASSWORD${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+if [[ "" == "$RDS_PASSWORD" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_PASSWORD${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 5
 fi
 
@@ -44,11 +44,10 @@ function err_report() {
 }
 trap 'trap_sigint' SIGINT SIGQUIT
 
-printf "${COLOR_YELLOW}Backup from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} to ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} file${COLOR_OFF}\n" "${REMOTE_RDS_USERNAME}@${REMOTE_RDS_HOSTNAME}:${REMOTE_RDS_PORT}" "$db_dump_sql_file_name"
+printf "${COLOR_YELLOW}Backup from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} to ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} file${COLOR_OFF}\n" "${RDS_USERNAME}@${RDS_HOSTNAME}:${RDS_PORT}" "$db_dump_sql_file_name"
 mkdir -p ${db_dump_dir_path}
 
-ignores=$(mysql --disable-column-names --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" -e "SELECT GROUP_CONCAT(concat('--ignore-table=', TABLE_SCHEMA, '.', table_name) SEPARATOR ' ') FROM information_schema.tables WHERE TABLE_SCHEMA = '${REMOTE_RDS_DB_NAME}' AND TABLE_NAME LIKE 'view_%';")
+ignores=$(mysql --disable-column-names --host "$RDS_HOSTNAME" --port "$RDS_PORT" --user "$RDS_USERNAME" --password="$RDS_PASSWORD" -e "SELECT GROUP_CONCAT(concat('--ignore-table=', TABLE_SCHEMA, '.', table_name) SEPARATOR ' ') FROM information_schema.tables WHERE TABLE_SCHEMA = '${RDS_DB_NAME}' AND TABLE_NAME LIKE 'view_%';")
 ignores=$(echo $ignores | sed 's/NULL//g; s/|NULL|/||/g; s/|NULL\(|\|$\)/|\1/g')
 
-mysqldump --verbose --host "$REMOTE_RDS_HOSTNAME" --port "$REMOTE_RDS_PORT" --user "$REMOTE_RDS_USERNAME" --password="$REMOTE_RDS_PASSWORD" $ignores "$REMOTE_RDS_DB_NAME" | gzip >"$db_dump_dir_path/$db_dump_gzip_file_name" || err_report
-
+mysqldump --verbose --host "$RDS_HOSTNAME" --port "$RDS_PORT" --user "$RDS_USERNAME" --password="$RDS_PASSWORD" $ignores "$RDS_DB_NAME" | gzip >"$db_dump_dir_path/$db_dump_gzip_file_name" || err_report

@@ -15,8 +15,8 @@ if [[ "" == "$REMOTE_HOST_URL" ]]; then
     printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_HOST_URL${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file, eg. ${COLOR_RED_BG}\$REMOTE_HOST_URL=http://example.com${COLOR_OFF}\n"
     exit 1
 fi
-if [[ "" == "$REMOTE_RDS_DB_NAME" ]]; then
-    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_RDS_DB_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+if [[ "" == "$RDS_DB_NAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_DB_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 2
 fi
 

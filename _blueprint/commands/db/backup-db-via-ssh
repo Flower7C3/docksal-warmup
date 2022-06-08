@@ -15,6 +15,27 @@ if [[ "" == "$REMOTE_SSH_CONNECTION" ]]; then
     printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$REMOTE_SSH_CONNECTION${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
     exit 1
 fi
+if [[ "" == "$RDS_HOSTNAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_HOSTNAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+    exit 2
+fi
+if [[ "" == "$RDS_PORT" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_PORT${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+    exit 3
+fi
+if [[ "" == "$RDS_DB_NAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_DB_NAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+    exit 4
+fi
+if [[ "" == "$RDS_USERNAME" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_USERNAME${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+    exit 5
+fi
+if [[ "" == "$RDS_PASSWORD" ]]; then
+    printf "${COLOR_RED}Please define ${COLOR_RED_BG}\$RDS_PASSWORD${COLOR_RED} in ${COLOR_RED_BG}.docksal/docksal-local.env${COLOR_RED} file${COLOR_OFF}\n"
+    exit 6
+fi
+
 
 #-------------------------- Execution --------------------------------
 printf "${COLOR_YELLOW}Check remote server ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} " "$REMOTE_SSH_CONNECTION"
@@ -35,10 +56,10 @@ trap 'trap_sigint' SIGINT SIGQUIT
 printf "${COLOR_YELLOW}Backup from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} to ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} file${COLOR_OFF}\n" "${REMOTE_SSH_CONNECTION}" "$db_dump_sql_file_name"
 mkdir -p ${db_dump_dir_path}
 
-ignores=$(ssh "${REMOTE_SSH_CONNECTION}" 'mysql --disable-column-names --host ${RDS_HOSTNAME} --port ${RDS_PORT} --user ${RDS_USERNAME} --password=${RDS_PASSWORD} -e "SELECT GROUP_CONCAT(concat(\"--ignore-table=\", TABLE_SCHEMA, \".\", table_name) SEPARATOR \" \") FROM information_schema.tables WHERE TABLE_SCHEMA = \"${RDS_DB_NAME}\" AND TABLE_NAME LIKE \"view_%\";"')
+ignores=$(ssh "${REMOTE_SSH_CONNECTION}" 'mysql --disable-column-names --host '${RDS_HOSTNAME}' --port '${RDS_PORT}' --user '${RDS_USERNAME}' --password="'${RDS_PASSWORD}'" -e "SELECT GROUP_CONCAT(concat(\"--ignore-table=\", TABLE_SCHEMA, \".\", table_name) SEPARATOR \" \") FROM information_schema.tables WHERE TABLE_SCHEMA = \"'${RDS_DB_NAME}'\" AND TABLE_NAME LIKE \"view_%\";"')
 ignores=$(echo $ignores | sed 's/NULL//g; s/|NULL|/||/g; s/|NULL\(|\|$\)/|\1/g')
 
-ssh "${REMOTE_SSH_CONNECTION}" 'mysqldump --verbose --host ${RDS_HOSTNAME} --port ${RDS_PORT} --user ${RDS_USERNAME} --password=${RDS_PASSWORD} '$ignores' ${RDS_DB_NAME} | gzip > '"$db_dump_gzip_file_name"
+ssh "${REMOTE_SSH_CONNECTION}" 'mysqldump --verbose --host '${RDS_HOSTNAME}' --port '${RDS_PORT}' --user '${RDS_USERNAME}' --password="'${RDS_PASSWORD}'" '$ignores' '${RDS_DB_NAME}' | gzip > '"$db_dump_gzip_file_name"
 
 printf "${COLOR_YELLOW}Copy dump file from ${COLOR_YELLOW_H}%s${COLOR_OFF}${COLOR_YELLOW} server to local${COLOR_OFF}\n" "$server_name"
 scp "${REMOTE_SSH_CONNECTION}":~/"$db_dump_gzip_file_name" "$db_dump_dir_path/$db_dump_gzip_file_name"
