@@ -18,7 +18,7 @@ system_programs=(curl)
 custom_programs=(fin jq)
 required_programs=("${custom_programs[@]}" "${system_programs[@]}")
 
-source $(dirname ${BASH_SOURCE})/vendor/Flower7C3/bash-helpers/_base.sh
+source "$(dirname "$_bash_source")/vendor/Flower7C3/bash-helpers/_base.sh"
 
 function get_cached_versions() {
     local key=$1
