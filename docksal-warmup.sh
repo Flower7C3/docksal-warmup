@@ -587,6 +587,9 @@ project_path=$(realpath .)
         if [[ "$node_app_server" != "no" ]]; then
             append_file "readme/docksal-how-to-node-server.md" "../README.md"
         fi
+        if [[ "$php_version" != "no" ]]; then
+            append_file "readme/docksal-how-to-php.md" "../README.md"
+        fi
         if [[ "$symfony_config" != "no" ]]; then
             if [[ "$symfony_config" -ge "3" ]]; then
                 append_file "readme/docksal-how-to-symfony-3.md" "../README.md"
