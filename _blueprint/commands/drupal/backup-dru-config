@@ -5,7 +5,6 @@
 ## Usage: fin backup-dru-site
 
 # Abort if anything fails
-# Abort if anything fails
 set -e
 
 #-------------------------- Configure --------------------------------

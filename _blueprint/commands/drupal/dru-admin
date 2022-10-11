@@ -5,7 +5,6 @@
 ## Usage: fin dru-admin
 
 # Abort if anything fails
-# Abort if anything fails
 set -e
 
 #-------------------------- Configure --------------------------------

@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 
-## Restore Drupal site
+#: exec_target = cli
+
+## Drush command
 ##
-## Usage: fin restore-dru-site
+## Usage: fin drush
 
 # Abort if anything fails
 set -e
 
 #-------------------------- Configure --------------------------------
-source $(dirname ${BASH_SOURCE})/_base.sh
 cd "$PROJECT_ROOT"
 
 #-------------------------- Execution --------------------------------
-fin drush config:import -y
+php vendor/bin/drush $@

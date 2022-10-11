@@ -418,10 +418,12 @@ project_path=$(realpath .)
             append_file "commands/_base-backups" "commands/_base.sh"
         fi
         copy_file "commands/prepare-site"
+        if [[ "$db_version" != "no" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
+            copy_file "commands/data/restore-data" "commands/restore-data"
+        fi
         if [[ "$db_backup_mode" != "no" ]]; then
             copy_file "commands/data/backup-data" "commands/backup-data"
             copy_file "commands/data/download-data" "commands/download-data"
-            copy_file "commands/data/restore-data" "commands/restore-data"
             if [[ "$db_backup_mode" == "http" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
                 copy_file "commands/data/share-data" "commands/share-data"
             fi
@@ -472,6 +474,7 @@ project_path=$(realpath .)
             )
         fi
         if [[ "$drupal_config" == "yes" ]]; then
+            copy_file "commands/drupal/drush" "commands/drush"
             copy_file "commands/drupal/dru-admin" "commands/dru-admin"
             copy_file "services/cli/drupal/settings.local.php" "services/cli/settings.local.php"
             if [[ "$drupal_config_backup_restore" == "yes" ]]; then
@@ -613,7 +616,7 @@ project_path=$(realpath .)
         fi
         if [[ "$symfony_config" != "no" ]]; then
             if [[ "$symfony_config" -ge "3" ]]; then
-                append_file "readme/docksal-how-to-symfony-3.md" "../README.md"
+                append_file "readme/docksal-how-to-symfony.md" "../README.md"
             else
                 append_file "readme/docksal-how-to-symfony-2.md" "../README.md"
             fi
