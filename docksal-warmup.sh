@@ -13,12 +13,13 @@ if [[ -L "$BASH_SOURCE" ]]; then
 else
     _bash_source="$BASH_SOURCE"
 fi
+_bash_source_dir="$(dirname "$_bash_source")"
 
 system_programs=(curl)
 custom_programs=(fin jq)
 required_programs=("${custom_programs[@]}" "${system_programs[@]}")
 
-source "$(dirname "$_bash_source")/vendor/Flower7C3/bash-helpers/_base.sh"
+source "${_bash_source_dir}/vendor/Flower7C3/bash-helpers/_base.sh"
 
 function get_cached_versions() {
     local key=$1
@@ -87,30 +88,39 @@ function replace_in_file() {
 
 function _auto_update() {
     local latest_remote_version
-    latest_remote_version=$(git rev-parse --verify HEAD)
+    latest_remote_version="$(cd "$_bash_source_dir" && git fetch && git rev-parse origin/master)"
     local latest_local_version
-    latest_local_version=$(git rev-parse HEAD)
+    latest_local_version="$(cd "$_bash_source_dir" && git rev-parse HEAD)"
     if [[ "$latest_remote_version" != "$latest_local_version" ]]; then
-        _self_update
+        prompt_variable_fixed _run_self_update "New application version found. Update?" "yes" "yes no" ""
+        if [[ "$_run_self_update" == "yes" ]]; then
+            _self_update
+            exit
+        fi
     fi
 }
 
 function _self_update() {
     display_header "Self update"
-    cd "$(dirname "$_bash_source")"
-    git checkout -- .
-    git pull origin master
-    git submodule update --init --recursive
-    git submodule foreach git pull origin master
+    (
+        cd "$_bash_source_dir"
+        git checkout -- .
+        git pull origin master
+        git submodule update --init --recursive
+        git submodule foreach git pull origin master
+    )
+    _cache_clear
 }
 
 function _cache_clear() {
     display_header "Cache clear"
-    cd "$(dirname "$_bash_source")"
-    set_cached_versions "http_server_versions" ""
-    set_cached_versions "php_versions" ""
-    set_cached_versions "db_versions" ""
-    set_cached_versions "nodejs_versions" ""
+    (
+        cd "$_bash_source_dir"
+        set_cached_versions "http_server_versions" ""
+        set_cached_versions "php_versions" ""
+        set_cached_versions "db_versions" ""
+        set_cached_versions "nodejs_versions" ""
+    )
 }
 
 # WELCOME
@@ -127,6 +137,7 @@ if [[ "$1" == "--cache-clear" ]]; then
 fi
 
 # VALIDATE
+display_header "System check..."
 is_system_ok=true
 for cmd in "${required_programs[@]}"; do
     if ! hash "$cmd" 2>/dev/null; then
@@ -143,8 +154,6 @@ if [[ "$is_system_ok" == "false" ]]; then
     done
     exit
 fi
-
-# UPDATE CHECK
 _auto_update
 
 # CONFIG
@@ -418,12 +427,10 @@ project_path=$(realpath .)
             append_file "commands/_base-backups" "commands/_base.sh"
         fi
         copy_file "commands/prepare-site"
-        if [[ "$db_version" != "no" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
-            copy_file "commands/data/restore-data" "commands/restore-data"
-        fi
         if [[ "$db_backup_mode" != "no" ]]; then
             copy_file "commands/data/backup-data" "commands/backup-data"
             copy_file "commands/data/download-data" "commands/download-data"
+            copy_file "commands/data/restore-data" "commands/restore-data"
             if [[ "$db_backup_mode" == "http" ]] || [[ "$drupal_files_backup_restore" == "yes" ]] || [[ "$wordpress_uploads_backup_restore" == "yes" ]]; then
                 copy_file "commands/data/share-data" "commands/share-data"
             fi
@@ -474,7 +481,6 @@ project_path=$(realpath .)
             )
         fi
         if [[ "$drupal_config" == "yes" ]]; then
-            copy_file "commands/drupal/drush" "commands/drush"
             copy_file "commands/drupal/dru-admin" "commands/dru-admin"
             copy_file "services/cli/drupal/settings.local.php" "services/cli/settings.local.php"
             if [[ "$drupal_config_backup_restore" == "yes" ]]; then
@@ -616,7 +622,7 @@ project_path=$(realpath .)
         fi
         if [[ "$symfony_config" != "no" ]]; then
             if [[ "$symfony_config" -ge "3" ]]; then
-                append_file "readme/docksal-how-to-symfony.md" "../README.md"
+                append_file "readme/docksal-how-to-symfony-3.md" "../README.md"
             else
                 append_file "readme/docksal-how-to-symfony-2.md" "../README.md"
             fi
