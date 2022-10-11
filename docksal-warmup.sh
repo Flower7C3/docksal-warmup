@@ -85,26 +85,44 @@ function replace_in_file() {
     display_info "Replaced in file ${COLOR_INFO_H}${file_path}${COLOR_INFO} from ${COLOR_INFO_H}${text_from}${COLOR_INFO} to ${COLOR_INFO_H}${text_to}${COLOR_INFO}"
 }
 
-# WELCOME
-program_title "Docksal configuration warmup"
+function _auto_update() {
+    local latest_remote_version
+    latest_remote_version=$(git rev-parse --verify HEAD)
+    local latest_local_version
+    latest_local_version=$(git rev-parse HEAD)
+    if [[ "$latest_remote_version" != "$latest_local_version" ]]; then
+        _self_update
+    fi
+}
 
-if [[ "$1" == "--self-update" ]]; then
+function _self_update() {
     display_header "Self update"
     cd "$(dirname "$_bash_source")"
     git checkout -- .
     git pull origin master
     git submodule update --init --recursive
     git submodule foreach git pull origin master
-    exit
-fi
+}
 
-if [[ "$1" == "--cache-clear" ]]; then
+function _cache_clear() {
     display_header "Cache clear"
     cd "$(dirname "$_bash_source")"
     set_cached_versions "http_server_versions" ""
     set_cached_versions "php_versions" ""
     set_cached_versions "db_versions" ""
     set_cached_versions "nodejs_versions" ""
+}
+
+# WELCOME
+program_title "Docksal configuration warmup"
+
+if [[ "$1" == "--self-update" ]]; then
+    _self_update
+    exit
+fi
+
+if [[ "$1" == "--cache-clear" ]]; then
+    _cache_clear
     exit
 fi
 
@@ -125,6 +143,9 @@ if [[ "$is_system_ok" == "false" ]]; then
     done
     exit
 fi
+
+# UPDATE CHECK
+_auto_update
 
 # CONFIG
 docksal_example_dir="$(realpath $(dirname "$_bash_source")/_blueprint/)/"
