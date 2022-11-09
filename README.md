@@ -19,6 +19,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Flower7C3/docksal-warmup/mas
 ## Usage
 
 Execute `fin warmup` and follow instructions.
+Run `fin help warmup` to see more information.
 
 
 ## Update

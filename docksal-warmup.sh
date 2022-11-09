@@ -662,6 +662,7 @@ print_new_line
 prompt_variable_fixed _init_docksal "Initialize Docker project?" "no" "yes no" ""
 if [[ "$_init_docksal" == "yes" ]]; then
     display_info "Initializing Docker project (executing ${COLOR_INFO_H}fin init${COLOR_INFO} command in ${COLOR_INFO_H}${project_path}${COLOR_INFO} directory.)"
+    cd "$project_name"
     if [[ $(type "yes") ]]; then
         yes | fin init
     else
