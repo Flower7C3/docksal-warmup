@@ -162,7 +162,7 @@ _project_name="example_$(date "+%Y%m%d_%H%M%S")"
 _application_stack="custom"
 _application_stacks="custom php php-nodb node boilerplate"
 _node_app_server="no"
-_db_import="yes"
+_db_import_default="yes"
 _db_backup_mode="no"
 _java_version="no"
 _java_versions="no 8"
@@ -321,13 +321,13 @@ while true; do
             prompt_variable_fixed wordpress_uploads_backup_restore "Add Docksal commands for Wordpress uploads backup and restore?" "$_wordpress_uploads_backup_restore" "yes no"
         fi
     fi
-    db_import="no"
+    db_import_default="no"
     db_backup_mode="no"
     if [[ "$db_version" != "no" ]]; then
         display_line ""
         display_header "Enable ${COLOR_LOG_H}DB addons${COLOR_LOG}"
-        prompt_variable_fixed db_import "Create default database file" "$_db_import" "yes no"
-        prompt_variable_fixed db_backup_mode "Choose mysqldump method: connect via 'ssh' to remote host, execute mysqldump and scp to local; execute mysqldump via 'fin' on remote database and save as local file; dump directly on remote and share as 'http' deep link?" "$_db_backup_mode" "ssh fin http no"
+        prompt_variable_fixed db_import_default "Create default database file" "$_db_import_default" "yes no"
+        prompt_variable_fixed db_backup_mode "Database dump method:\n- connect via ${COLOR_QUESTION_I}ssh${COLOR_QUESTION} to remote host, execute mysqldump and scp to local (required login via SSH on remote server)\n- execute mysqldump via ${COLOR_QUESTION_I}fin${COLOR_QUESTION} on remote database and save as local file (required access to remote database from external host)\n- dump directly on remote and share as ${COLOR_QUESTION_I}http${COLOR_QUESTION} deep link (required login via SSH on remote server and access via http)" "$_db_backup_mode" "ssh fin http no"
     fi
     node_app_server="no"
     if [[ "$nodejs_version" != "no" ]]; then
@@ -404,7 +404,7 @@ project_path=$(realpath .)
             fi
         )
         (
-            if [[ "$db_import" == "yes" || "$java_version" != "no" ]] || [[ "$node_app_server" != "no" ]]; then
+            if [[ "$db_import_default" == "yes" || "$java_version" != "no" ]] || [[ "$node_app_server" != "no" ]]; then
                 echo "services:" >>.docksal/docksal.yml
             fi
         )
@@ -544,8 +544,8 @@ project_path=$(realpath .)
     )
     (
         display_header "Prepare custom config"
-        if [[ "$db_import" == "yes" ]]; then
-            display_info "Import custom db into ${COLOR_INFO_H}db${COLOR_INFO} container"
+        if [[ "$db_import_default" == "yes" ]]; then
+            display_info "Import custom database into ${COLOR_INFO_H}db${COLOR_INFO} container"
             copy_file "database/init/init-example.sql"
             append_file docksal.yml/db-custom-data.yml docksal.yml
             (
