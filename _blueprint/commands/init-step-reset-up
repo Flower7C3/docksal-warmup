@@ -1,5 +1,5 @@
 # Stack initialization
-printf "${COLOR_YELLOW_BG} Step: Initializing stack...${COLOR_OFF}\n"
+printf "${COLOR_YELLOW_BG} Step ${COLOR_YELLOW} Initializing stack...${COLOR_OFF}\n"
 if [[ "${DOCKER_RUNNING}" == "true" ]]; then
     fin reset -f
 else

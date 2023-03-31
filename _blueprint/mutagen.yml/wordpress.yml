@@ -1,0 +1,17 @@
+sync:
+  defaults:
+    flushOnCreate: true
+    ignore:
+      vcs: false
+      paths:
+        - ".DS_Store"
+        - "/.idea/"
+        - "/.git/"
+        - "/public/wp-content/uploads/"
+    permissions:
+      defaultFileMode: 644
+      defaultDirectoryMode: 755
+  PROJECT_NAME-cli:
+    alpha: './'
+    beta: 'docker://docker@PROJECT_NAME_cli_1/var/www'
+    mode: 'two-way-resolved'

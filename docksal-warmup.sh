@@ -661,9 +661,22 @@ project_path=$(realpath .)
         replace_in_file '../README.md' 'VIRTUAL_HOST' "$(printf ${domain_url} | sed 's:/:\\/:g')"
     )
     (
-        display_header "GIT ignore setup"
         if [[ "$mutagen" != "no" ]]; then
+            display_header "Mutagen setup"
+            fin config set MUTAGEN="1"
+            fin config set DOCKSAL_VOLUMES="none"
+            fin config set PROJECT_NAME="$project_name"
             echo "mutagen.yml.lock" >>"../.gitignore"
+            if [[ "$symfony_config" == "yes" ]]; then
+                append_file "mutagen.yml/symfony.yml" "../mutagen.yml"
+            fi
+            if [[ "$drupal_config" == "yes" ]]; then
+                append_file "mutagen.yml/drupal.yml" "../mutagen.yml"
+            fi
+            if [[ "$wordpress_config" == "yes" ]]; then
+                append_file "mutagen.yml/wordpress.yml" "../mutagen.yml"
+            fi
+            replace_in_file '../mutagen.yml' 'PROJECT_NAME' "$(printf ${project_name} | sed 's:/:\\/:g')"
         fi
     )
     display_success "Docksal configuration is ready."
