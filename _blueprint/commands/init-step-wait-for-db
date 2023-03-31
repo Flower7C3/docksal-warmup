@@ -1,0 +1,4 @@
+if [[ "$(fin config | grep mysql)" ]]; then
+    printf "${COLOR_YELLOW}Waiting 10s for MySQL to initialize...${COLOR_OFF}\n"
+    sleep 10
+fi

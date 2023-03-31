@@ -1,0 +1,3 @@
+# Stack initialization
+printf "${COLOR_YELLOW_BG} Step: Initializing stack...${COLOR_OFF}\n"
+fin mutagen restart

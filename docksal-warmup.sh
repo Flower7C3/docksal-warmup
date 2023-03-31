@@ -162,6 +162,7 @@ _project_name="example_$(date "+%Y%m%d_%H%M%S")"
 _application_stack="custom"
 _application_stacks="custom php php-nodb node boilerplate"
 _node_app_server="no"
+_mutagen="yes"
 _db_import_default="yes"
 _db_backup_mode="no"
 _java_version="no"
@@ -335,6 +336,8 @@ while true; do
         display_header "Enable ${COLOR_LOG_H}Node addons${COLOR_LOG}"
         prompt_variable_fixed node_app_server "Create Node app server from port 3000 on ${COLOR_QUESTION_H}nodeapp.$domain_name${COLOR_QUESTION} domain?" "$_node_app_server" "yes no"
     fi
+    display_line ""
+    prompt_variable_fixed mutagen "Enable Mutagen support?" "$_mutagen" "yes no"
     # PROGRAM
     display_line ""
     prompt_variable_fixed _save_to_docksal "Save above options as Docksal configuration?" "no" "yes no" ""
@@ -413,11 +416,18 @@ project_path=$(realpath .)
     (
         display_header "Add custom commands"
         copy_file "commands/init"
-        append_file "commands/init-step-reset-up" "commands/init"
+        append_file "commands/init-step-ssl" "commands/init"
+        if [[ "$mutagen" != "no" ]]; then
+            append_file "commands/init-step-reset-up-mutagen" "commands/init"
+        else
+            append_file "commands/init-step-reset-up" "commands/init"
+        fi
+        if [[ "$db_version" != "no" ]]; then
+            append_file "commands/init-step-wait-for-db" "commands/init"
+        fi
         if [[ "$nodejs_version" != "no" ]]; then
             append_file "commands/node/init" "commands/init"
         fi
-        append_file "commands/init-step-ssl" "commands/init"
         append_file "commands/init-step-prepare-site" "commands/init"
         if [[ "$db_version" != "no" ]]; then
             append_file "commands/init-step-prepare-db" "commands/init"
@@ -593,7 +603,11 @@ project_path=$(realpath .)
     )
     (
         display_header "Prepare readme file"
-        append_file "readme/docksal-setup.md" "../README.md"
+        if [[ "$mutagen" != "no" ]]; then
+            append_file "readme/docksal-setup-mutagen.md" "../README.md"
+        else
+            append_file "readme/docksal-setup-standard.md" "../README.md"
+        fi
         append_file "readme/docksal-setup-project.md" "../README.md"
         if [[ "$nodejs_version" != "no" ]]; then
             append_file "readme/docksal-setup-node.md" "../README.md"
@@ -601,7 +615,11 @@ project_path=$(realpath .)
         append_file "readme/docksal-setup-docksal.md" "../README.md"
         append_file "readme/docksal-setup-init.md" "../README.md"
         append_file "readme/docksal-setup-bugs.md" "../README.md"
-        append_file "readme/docksal-how-to.md" "../README.md"
+        if [[ "$mutagen" != "no" ]]; then
+            append_file "readme/docksal-how-to-mutagen.md" "../README.md"
+        else
+            append_file "readme/docksal-how-to-standard.md" "../README.md"
+        fi
         if [[ "$db_version" != "no" ]]; then
             if [[ "$db_backup_mode" == "ssh" ]]; then
                 append_file "readme/docksal-how-to-db-via-ssh.md" "../README.md"
@@ -641,6 +659,12 @@ project_path=$(realpath .)
         fi
         replace_in_file '../README.md' 'PROJECT_NAME' "$(printf ${project_name} | sed 's:/:\\/:g')"
         replace_in_file '../README.md' 'VIRTUAL_HOST' "$(printf ${domain_url} | sed 's:/:\\/:g')"
+    )
+    (
+        display_header "GIT ignore setup"
+        if [[ "$mutagen" != "no" ]]; then
+            echo "mutagen.yml.lock" >>"../.gitignore"
+        fi
     )
     display_success "Docksal configuration is ready."
     trap - SIGINT
